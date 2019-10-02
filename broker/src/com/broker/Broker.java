@@ -11,9 +11,11 @@ import java.util.Scanner;
 public class Broker {
 
     public static void main(String args[]) throws IOException {
+
         Socket socket;
         BufferedReader in;
         PrintWriter out;
+        String input = "";
 
         while (true) {
             socket = new Socket("localhost", 5000);
@@ -21,15 +23,14 @@ public class Broker {
 
             if (user.hasNext()) {
                 out = new PrintWriter(socket.getOutputStream(), true);
-                out.println(user.next());
+                input = user.next();
+                out.println(input);
             }
 
-            System.out.println("Awaiting Result...");
+            System.out.println("Requesting " + input + " shares from Market...");
 
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            System.out.println(in.readLine());
-
-            System.out.println("Result Complete");
+            System.out.println("Market : " + in.readLine());
         }
     }
 }

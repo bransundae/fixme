@@ -14,6 +14,8 @@ public class ClientReader implements Callable {
 
     private Socket client;
 
+    private boolean init = true;
+
     public ClientReader(ServerSocket serverSocket){
         this.serverSocket = serverSocket;
     }
@@ -28,30 +30,34 @@ public class ClientReader implements Callable {
 
     @Override
     public Object call() throws Exception {
-        System.out.println("Client Reader : Waiting for Client...");
 
-        if (client == null)
-            this.client = serverSocket.accept();
+        if (init)
+            System.out.println("Client Reader : Waiting for Client...");
 
-        System.out.println("Client Reader : Client Connected!");
+        this.client = serverSocket.accept();
 
-        String message = "";
-        BufferedReader in = null;
-        PrintWriter out = null;
+        if (init)
+            System.out.println("Client Reader : Client Connected!");
 
-        try {
-            in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-        } catch (IOException e){
-            System.out.println("Read from Client Failed");
-            return null;
-        }
+        init = false;
 
-        try {
-            message = in.readLine();
-        } catch (IOException e) {
-            System.out.println("Input Read Failed");
-        }
+            String message = "";
+            BufferedReader in = null;
+            PrintWriter out = null;
 
-        return message;
+            try {
+                in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+            } catch (IOException e) {
+                System.out.println("Read from Client Failed");
+                return null;
+            }
+
+            try {
+                message = in.readLine();
+            } catch (IOException e) {
+                System.out.println("Input Read Failed");
+            }
+            return message;
+
     }
 }

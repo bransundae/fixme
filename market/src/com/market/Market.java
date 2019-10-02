@@ -9,11 +9,14 @@ import java.net.Socket;
 public class Market {
 
     public static void main(String args[]) throws IOException {
+
         Socket socket;
         BufferedReader in;
         PrintWriter out;
 
-        int apples = 200;
+        int apples = 1000;
+        System.out.println("Market is open!");
+        System.out.println(apples + " shares are availabe on this market...");
 
         while (true){
             String input = "";
@@ -36,17 +39,20 @@ public class Market {
                 System.out.println("Invalid Input");
             }
 
-            if (num <= apples || num > 0){
+            System.out.println("Broker : Requesting " + num + " shares...");
+
+            if (num <= apples && num > 0){
                 response = "Order Accepted";
                 apples -= num;
+                System.out.println("Transaction Approved!");
             }
             else {
                 response = "Order Denied";
+                System.out.println("Transaction Refused!");
             }
-
+            System.out.println(apples + " shares are availabe...");
             out = new PrintWriter(socket.getOutputStream(), true);
             out.println(response);
-
         }
     }
 
