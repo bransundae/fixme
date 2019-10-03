@@ -2,6 +2,9 @@ package com.fixme;
 
 import java.io.*;
 import java.net.ServerSocket;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -25,11 +28,18 @@ public class Router {
     }
 
     public static void main(String args[]) throws Exception {
+
+        Map<Integer, ClientReader> idPortMap = new HashMap<>();
+        Message message;
+        int id = 100000;
+
+
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         Future <String> brokerResponse = null;
         Future <String> marketResponse = null;
         String brokerMessage = null;
         String marketMessage = null;
+        String routerMessage = null;
         listenSocket();
 
         int responseCount = 0;
@@ -39,18 +49,39 @@ public class Router {
                 brokerResponse = executorService.submit(brokerReader);
             }
             else if (brokerResponse.isDone() && brokerResponse.get() != null){
-                brokerMessage = brokerResponse.get();
+                try {
+                    int res = Integer.parseInt(brokerMessage);
+                    if (res == -1){
+                        idPortMap.put(id++, brokerReader);
+                        routerMessage = "" + id;
+                    }
+                } catch (NumberFormatException e) {
+                    brokerMessage = brokerResponse.get();
+                    responseCount++;
+                }
                 brokerResponse = null;
-                responseCount++;
             }
 
             if (marketResponse == null){
                 marketResponse = executorService.submit(marketReader);
             }
             else if (marketResponse.isDone() && marketResponse.get() != null){
-                marketMessage = marketResponse.get();
+                try {
+                    int res = Integer.parseInt(marketMessage);
+                    if (res == -1) {
+                        idPortMap.put(id++, marketReader);
+                        routerMessage = "" + id;
+                    }
+                } catch (NumberFormatException e) {
+                    marketMessage = marketResponse.get();
+                    responseCount++;
+                }
                 marketResponse = null;
-                responseCount++;
+            }
+
+            if (routerMessage != null){
+                executorService.submit(new ClientWriter(idPortMap.get(Integer.parseInt(routerMessage)).getClient(), routerMessage));
+                routerMessage = null;
             }
 
             if (marketMessage != null && responseCount <= 2){
@@ -71,7 +102,5 @@ public class Router {
                 marketMessage = null;
             }
         }
-
     }
-
 }

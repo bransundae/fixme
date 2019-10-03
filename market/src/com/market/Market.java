@@ -8,7 +8,30 @@ import java.net.Socket;
 
 public class Market {
 
+    private static void connect() throws IOException {
+        Socket socket = new Socket("localhost", 5001);
+        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+        int response = -1;
+
+        try {
+            response = Integer.parseInt(in.readLine());
+        } catch (IOException e){
+            System.out.println("Invalid Response");
+        } catch (NumberFormatException e){
+            System.out.println("Invalid Response");
+        } catch (NullPointerException e){
+            System.out.println("Invalid Response");
+        }
+
+        if (response < 0){
+            System.exit(-1);
+        }
+    }
+
     public static void main(String args[]) throws IOException {
+
+        connect();
 
         Socket socket;
         BufferedReader in;
@@ -55,5 +78,4 @@ public class Market {
             out.println(response);
         }
     }
-
 }
