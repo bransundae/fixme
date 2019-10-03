@@ -1,5 +1,6 @@
 package com.market;
 
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -8,9 +9,15 @@ import java.net.Socket;
 
 public class Market {
 
+    private static int id;
+    private static Socket socket;
+
     private static void connect() throws IOException {
-        Socket socket = new Socket("localhost", 5001);
+        socket = new Socket("localhost", 5001);
         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+        out.println("-1");
 
         int response = -1;
 
@@ -26,6 +33,8 @@ public class Market {
 
         if (response < 0){
             System.exit(-1);
+        } else {
+            id = response;
         }
     }
 
@@ -33,49 +42,60 @@ public class Market {
 
         connect();
 
-        Socket socket;
         BufferedReader in;
         PrintWriter out;
 
         int apples = 1000;
-        System.out.println("Market is open!");
+        System.out.println("Router has allocated this server with ID : " + id);
+        System.out.println("This Market is now open!");
         System.out.println(apples + " shares are availabe on this market...");
 
         while (true){
             String input = "";
             String response = "";
             int num = 0;
-            socket = new Socket("localhost", 5001);
 
             //Block until Market recieves input
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
+            int senderID = -1;
+            int recipientID = -1;
+            int order = -1;
+
             try {
                 input = in.readLine();
+                System.out.println("Got input: " + input);
             } catch (IOException e){
                 System.out.println("Invalid Input");
             }
 
+            String split[] = input.split("\\|");
+
             try {
-                num = Integer.parseInt(input);
+                senderID = Integer.parseInt(split[0]);
+                recipientID = Integer.parseInt(split[1]);
+                order = Integer.parseInt(split[2]);
             } catch (NumberFormatException e){
                 System.out.println("Invalid Input");
             }
 
-            System.out.println("Broker : Requesting " + num + " shares...");
+            System.out.println("Broker : Requesting " + order + " shares...");
 
-            if (num <= apples && num > 0){
-                response = "Order Accepted";
-                apples -= num;
+            if (order <= apples && order > 0){
+                response = "1";
+                apples -= order;
                 System.out.println("Transaction Approved!");
             }
             else {
-                response = "Order Denied";
+                response = "-1";
                 System.out.println("Transaction Refused!");
             }
+
+            socket = new Socket("localhost", 5001);
+
             System.out.println(apples + " shares are availabe...");
             out = new PrintWriter(socket.getOutputStream(), true);
-            out.println(response);
+            out.println(id + "|" + senderID + "|" + response);
         }
     }
 }

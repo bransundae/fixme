@@ -11,12 +11,13 @@ import java.util.Scanner;
 public class Broker {
 
     private static int id;
+    private static Socket socket;
 
     private static void connect() throws IOException {
-        Socket socket = new Socket("localhost", 5000);
+        socket = new Socket("localhost", 5000);
 
         PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-        out.println(-1);
+        out.println("-1");
 
         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
@@ -44,7 +45,6 @@ public class Broker {
     public static void main(String args[]) throws IOException {
         connect();
 
-        Socket socket;
         BufferedReader in;
         PrintWriter out;
         String input = "";
@@ -62,7 +62,13 @@ public class Broker {
             System.out.println("Requesting " + input + " shares from Market...");
 
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            System.out.println("Market : " + in.readLine());
+
+            int status = Integer.parseInt(in.readLine().split("\\|")[2]);
+
+            if (status == 1)
+                System.out.println("Market : Executed");
+            else
+                System.out.println("Market : Rejected");
         }
     }
 }
