@@ -6,6 +6,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,6 +18,8 @@ public class Router {
 
     private static ClientReader marketReader;
     private static ClientReader brokerReader;
+
+    public static int clientID = 100000;
 
 
     private static void listenSocket() throws IOException {
@@ -30,14 +33,13 @@ public class Router {
     }
 
     public static void main(String args[]) throws Exception {
-
         Map<Integer, Socket> clientMap = new HashMap<>();
-        Message message;
-        int brokerID = 100000;
-        int marketID = 490000;
+        ArrayList<Future<Message>> futureList = new ArrayList<>();
+        ArrayList<Message> jobList = new ArrayList<>();
+        Map<Future<Message>, ClientReader> futureMap = new HashMap<>();
 
 
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        ExecutorService executorService = Executors.newCachedThreadPool();
         Future <String> brokerResponse = null;
         Future <String> marketResponse = null;
         String brokerMessage = null;
@@ -45,9 +47,58 @@ public class Router {
         String routerMessage = null;
         listenSocket();
 
-        int responseCount = 0;
-
         while (true){
+            ClientReader brokerReader = new ClientReader(broker);
+            ClientReader marketReader = new ClientReader(market);
+
+            futureMap.put(executorService.submit(brokerReader), brokerReader);
+            futureMap.put(executorService.submit(marketReader), marketReader);
+
+            Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
+            while (it.hasNext()){
+                Map.Entry<Future<Message>, ClientReader> pair = (Map.Entry<Future<Message>, ClientReader>)it.next();
+                if (pair.getKey().isDone()){
+                    if (pair.getKey().get().getSender() == 500){
+                        clientMap.put(pair.getKey().get().getRecipient(), pair.getKey().get().getSocket());
+                    }
+                    jobList.add(pair.getKey().get());
+                }
+                else {
+                    pair.getValue().getServerSocket().close();
+
+                }
+                futureMap.remove(pair);
+            }
+
+
+            /*for (int i = 0; i < futureMap.size(); i++){
+                if (futureList.get(i).isDone()){
+                    if (futureList.get(i).get().getSender() == 500)
+                        clientMap.put(futureList.get(i).get().getRecipient(), futureList.get(i).get().getSocket());
+                    jobList.add(futureList.get(i).get());
+                    futureList.remove(futureList.get(i));
+                }
+                else {
+                    futureList.get
+                    futureList.remove(futureList.get(i));
+                }
+            }*/
+
+            for (int i = 0; i < jobList.size(); i++){
+                if (clientMap.get(jobList.get(i).getRecipient()) != null) {
+                    System.out.println("Job ready to be executed");
+                    futureList.add(executorService.submit(new ClientWriter(clientMap.get(jobList.get(i).getRecipient()), jobList.get(i).toString())));
+                    if (clientMap.get(jobList.get(i).getRecipient()) != null) {
+                        System.out.println("Client Socket Present!");
+                    }
+                }
+                jobList.remove(jobList.get(i));
+            }
+        }
+
+
+
+       /*while (true){
             if (brokerResponse == null){
                 brokerResponse = executorService.submit(brokerReader);
             }
@@ -64,7 +115,6 @@ public class Router {
                     brokerMessage = brokerResponse.get();
                     int senderID = Integer.parseInt(brokerMessage.split("\\|")[0]);
                     clientMap.replace(senderID, brokerReader.getClient());
-                    responseCount++;
                 }
                 brokerResponse = null;
             }
@@ -85,7 +135,6 @@ public class Router {
                     marketMessage = marketResponse.get();
                     int senderID = Integer.parseInt(marketMessage.split("\\|")[0]);
                     clientMap.replace(senderID, marketReader.getClient());
-                    responseCount++;
                 }
                 marketResponse = null;
             }
@@ -128,6 +177,6 @@ public class Router {
                 executorService.submit(new ClientWriter(clientMap.get(recipientID), marketMessage));
                 marketMessage = null;
             }
-        }
+        }*/
     }
 }

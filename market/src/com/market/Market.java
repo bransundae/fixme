@@ -17,7 +17,7 @@ public class Market {
         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
         PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-        out.println("-1");
+        out.println("c");
 
         int response = -1;
 

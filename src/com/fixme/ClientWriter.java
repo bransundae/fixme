@@ -26,6 +26,7 @@ public class ClientWriter implements Callable {
         try {
             out = new PrintWriter(client.getOutputStream(), true);
             out.println(message);
+            System.out.println("Response Sent To Client");
         } catch (IOException e){
             System.out.println("Write to Client Failed");
             return null;

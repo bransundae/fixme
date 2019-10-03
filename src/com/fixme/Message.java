@@ -1,10 +1,13 @@
 package com.fixme;
 
+import java.net.Socket;
+
 public class Message {
 
     private String message;
     private int sender;
     private int recipient;
+    private Socket socket;
     private boolean status;
 
     public Message(int sender, int recipient, String message){
@@ -12,6 +15,22 @@ public class Message {
         this.recipient = recipient;
         this.sender = sender;
         this.status = false;
+    }
+
+    public Message(int sender, int recipient, String message, Socket socket){
+        this.message = message;
+        this.recipient = recipient;
+        this.sender = sender;
+        this.socket = socket;
+        this.status = false;
+    }
+
+    public Socket getSocket() {
+        return socket;
+    }
+
+    public void setSocket(Socket socket) {
+        this.socket = socket;
     }
 
     public int getRecipient() {

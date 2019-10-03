@@ -17,7 +17,7 @@ public class Broker {
         socket = new Socket("localhost", 5000);
 
         PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-        out.println("-1");
+        out.println("c");
 
         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 

@@ -14,7 +14,7 @@ public class ClientReader implements Callable {
 
     private Socket client;
 
-    private boolean init = true;
+    private Message message;
 
     public ClientReader(ServerSocket serverSocket){
         this.serverSocket = serverSocket;
@@ -28,18 +28,18 @@ public class ClientReader implements Callable {
         return client;
     }
 
+    public ServerSocket getServerSocket() {
+        return serverSocket;
+    }
+
     @Override
     public Object call() throws Exception {
-
-        if (init)
-            System.out.println("Client Reader : Waiting for Client...");
-
-        this.client = serverSocket.accept();
-
-        if (init)
-            System.out.println("Client Reader : Client Connected!");
-
-        init = false;
+        System.out.println("New Client Reader Started...");
+        try {
+            this.client = serverSocket.accept();
+        } catch (Exception e){
+            return null;
+        }
 
             String message = "";
             BufferedReader in = null;
@@ -57,7 +57,18 @@ public class ClientReader implements Callable {
             } catch (IOException e) {
                 System.out.println("Input Read Failed");
             }
-            return message;
 
+            if (!message.equalsIgnoreCase("c")) {
+                String split[] = message.split("\\|");
+                this.message = new Message(Integer.parseInt(split[0]), Integer.parseInt(split[1]), split[2], client);
+            }
+            //If client ID does not exist then assign client an ID and store socket in HashMap
+            else {
+                this.message = new Message(500, Router.clientID, "Registered to Router with ID : " + Router.clientID, client);
+                Router.clientID++;
+                System.out.println(this.message.toString());
+            }
+
+            return this.message;
     }
 }
