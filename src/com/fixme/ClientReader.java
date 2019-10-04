@@ -6,6 +6,8 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.concurrent.Callable;
 
 public class ClientReader implements Callable {
@@ -18,6 +20,12 @@ public class ClientReader implements Callable {
 
     public ClientReader(ServerSocket serverSocket){
         this.serverSocket = serverSocket;
+
+        try {
+            this.serverSocket.setSoTimeout(2000);
+        } catch (SocketException e){
+            System.out.println("Cannot set Timeout on this Socket");
+        }
     }
 
     public ClientReader(Socket client) {
@@ -35,9 +43,11 @@ public class ClientReader implements Callable {
     @Override
     public Object call() throws Exception {
         System.out.println("New Client Reader Started...");
+
+        //Blocking Socket call
         try {
             this.client = serverSocket.accept();
-        } catch (Exception e){
+        } catch (SocketTimeoutException e){
             return null;
         }
 
@@ -64,7 +74,7 @@ public class ClientReader implements Callable {
             }
             //If client ID does not exist then assign client an ID and store socket in HashMap
             else {
-                this.message = new Message(500, Router.clientID, "Registered to Router with ID : " + Router.clientID, client);
+                this.message = new Message(500, Router.clientID, "" + Router.clientID, client);
                 Router.clientID++;
                 System.out.println(this.message.toString());
             }

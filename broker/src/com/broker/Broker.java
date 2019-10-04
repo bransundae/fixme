@@ -10,7 +10,7 @@ import java.util.Scanner;
 
 public class Broker {
 
-    private static int id;
+    private static int id = -1;
     private static Socket socket;
 
     private static void connect() throws IOException {
@@ -21,30 +21,41 @@ public class Broker {
 
         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-        int response = -1;
+        String sender = "";
+        String recipient = "";
+        String message = "";
+
+        String split[] = null;
 
         try {
-            response = Integer.parseInt(in.readLine());
+            split = in.readLine().split("\\|");
         } catch (IOException e){
             System.out.println("Invalid Response");
+        }
+
+        if (split != null) {
+            sender = split[0];
+            recipient = split[1];
+            message = split[2];
+        }
+
+        try {
+            id = Integer.parseInt(message);
         } catch (NumberFormatException e){
             System.out.println("Invalid Response");
         } catch (NullPointerException e){
             System.out.println("Invalid Response");
         }
 
-        if (response < 0){
+        if (id < 0){
             System.exit(-1);
-        }
-        else {
-            id = response;
         }
     }
 
 
     public static void main(String args[]) throws IOException {
         connect();
-
+        System.out.println("This Broker has been assigned ID : " + id + " for this session");
         BufferedReader in;
         PrintWriter out;
         String input = "";

@@ -54,43 +54,25 @@ public class Router {
             futureMap.put(executorService.submit(brokerReader), brokerReader);
             futureMap.put(executorService.submit(marketReader), marketReader);
 
+            //Iterate through the futureMap and if a Callable has returned a completed Future then add the message to the job queue and remove the future - ClientReader pair
+            //If the sender of the message is not registered then store the socket from the ClientReader first
             Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
                 Map.Entry<Future<Message>, ClientReader> pair = (Map.Entry<Future<Message>, ClientReader>)it.next();
                 if (pair.getKey().isDone()){
-                    if (pair.getKey().get().getSender() == 500){
-                        clientMap.put(pair.getKey().get().getRecipient(), pair.getKey().get().getSocket());
+                    if (pair.getKey().get() != null) {
+                        if (pair.getKey().get().getSender() == 500) {
+                            clientMap.put(pair.getKey().get().getRecipient(), pair.getKey().get().getSocket());
+                        }
+                        jobList.add(pair.getKey().get());
                     }
-                    jobList.add(pair.getKey().get());
+                    futureMap.remove(pair);
                 }
-                else {
-                    pair.getValue().getServerSocket().close();
-
-                }
-                futureMap.remove(pair);
             }
-
-
-            /*for (int i = 0; i < futureMap.size(); i++){
-                if (futureList.get(i).isDone()){
-                    if (futureList.get(i).get().getSender() == 500)
-                        clientMap.put(futureList.get(i).get().getRecipient(), futureList.get(i).get().getSocket());
-                    jobList.add(futureList.get(i).get());
-                    futureList.remove(futureList.get(i));
-                }
-                else {
-                    futureList.get
-                    futureList.remove(futureList.get(i));
-                }
-            }*/
 
             for (int i = 0; i < jobList.size(); i++){
                 if (clientMap.get(jobList.get(i).getRecipient()) != null) {
-                    System.out.println("Job ready to be executed");
                     futureList.add(executorService.submit(new ClientWriter(clientMap.get(jobList.get(i).getRecipient()), jobList.get(i).toString())));
-                    if (clientMap.get(jobList.get(i).getRecipient()) != null) {
-                        System.out.println("Client Socket Present!");
-                    }
                 }
                 jobList.remove(jobList.get(i));
             }

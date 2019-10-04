@@ -19,22 +19,34 @@ public class Market {
         PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
         out.println("c");
 
-        int response = -1;
+        String sender = "";
+        String recipient = "";
+        String message = "";
+
+        String split[] = null;
 
         try {
-            response = Integer.parseInt(in.readLine());
+            split = in.readLine().split("\\|");
         } catch (IOException e){
             System.out.println("Invalid Response");
+        }
+
+        if (split != null) {
+            sender = split[0];
+            recipient = split[1];
+            message = split[2];
+        }
+
+        try {
+            id = Integer.parseInt(message);
         } catch (NumberFormatException e){
             System.out.println("Invalid Response");
         } catch (NullPointerException e){
             System.out.println("Invalid Response");
         }
 
-        if (response < 0){
+        if (id < 0){
             System.exit(-1);
-        } else {
-            id = response;
         }
     }
 
