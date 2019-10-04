@@ -99,7 +99,7 @@ public class Market {
                 System.out.println("Transaction Approved!");
             }
             else {
-                response = "-1";
+                response = "0";
                 System.out.println("Transaction Refused!");
             }
 

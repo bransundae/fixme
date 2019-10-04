@@ -39,14 +39,9 @@ public class Router {
         ArrayList<Message> jobList = new ArrayList<>();
         Map<Future<Message>, ClientReader> futureMap = new HashMap<>();
 
-
         ExecutorService readerService = Executors.newFixedThreadPool(2);
         ExecutorService writerService = Executors.newFixedThreadPool(2);
-        /*Future <String> brokerResponse = null;
-        Future <String> marketResponse = null;
-        String brokerMessage = null;
-        String marketMessage = null;
-        String routerMessage = null;*/
+
         listenSocket();
 
         while (true){
@@ -88,91 +83,10 @@ public class Router {
             for (int i = 0; i < jobList.size(); i++){
                 if (clientMap.get(jobList.get(i).getRecipient()) != null)
                     writerService.submit(new ClientWriter(clientMap.get(jobList.get(i).getRecipient()), jobList.get(i).toString()));
+                else
+                    writerService.submit(new ClientWriter(clientMap.get(jobList.get(i).getSender()), "500|" + jobList.get(i).getSender() + "|-1"));
                 jobList.remove(jobList.get(i));
             }
         }
-
-
-
-       /*while (true){
-            if (brokerResponse == null){
-                brokerResponse = executorService.submit(brokerReader);
-            }
-            else if (brokerResponse.isDone() && brokerResponse.get() != null){
-                try {
-                    int res = Integer.parseInt(brokerResponse.get());
-                    if (res == -1){
-                        if (clientMap.get(++brokerID) == null) {
-                            clientMap.put(brokerID, brokerReader.getClient());
-                            routerMessage = "" + brokerID;
-                        }
-                    }
-                } catch (NumberFormatException e) {
-                    brokerMessage = brokerResponse.get();
-                    int senderID = Integer.parseInt(brokerMessage.split("\\|")[0]);
-                    clientMap.replace(senderID, brokerReader.getClient());
-                }
-                brokerResponse = null;
-            }
-
-            if (marketResponse == null){
-                marketResponse = executorService.submit(marketReader);
-            }
-            else if (marketResponse.isDone() && marketResponse.get() != null){
-                try {
-                    int res = Integer.parseInt(marketResponse.get());
-                    if (res == -1) {
-                        if (clientMap.get(++marketID) == null) {
-                            clientMap.put(marketID, marketReader.getClient());
-                            routerMessage = "" + marketID;
-                        }
-                    }
-                } catch (NumberFormatException e) {
-                    marketMessage = marketResponse.get();
-                    int senderID = Integer.parseInt(marketMessage.split("\\|")[0]);
-                    clientMap.replace(senderID, marketReader.getClient());
-                }
-                marketResponse = null;
-            }
-
-            if (routerMessage != null){
-                executorService.submit(new ClientWriter(clientMap.get(Integer.parseInt(routerMessage)), routerMessage));
-                routerMessage = null;
-            }
-
-            if (brokerMessage != null){
-                int senderID;
-                int recipientID;
-                int order;
-
-                String split[] = brokerMessage.split("\\|");
-
-                senderID = Integer.parseInt(split[0]);
-                recipientID = Integer.parseInt(split[1]);
-                order = Integer.parseInt(split[2]);
-
-                System.out.printf("Broker : SenderID: %S | RecipientID: %S | Order: %S\n", senderID, recipientID, order);
-
-                executorService.submit(new ClientWriter(clientMap.get(recipientID), brokerMessage));
-                brokerMessage = null;
-            }
-
-            if (marketMessage != null){
-                int senderID;
-                int recipientID;
-                int status;
-
-                String split[] = marketMessage.split("\\|");
-
-                senderID = Integer.parseInt(split[0]);
-                recipientID = Integer.parseInt(split[1]);
-                status = Integer.parseInt(split[2]);
-
-                System.out.printf("Market : SenderID: %S | RecipientID: %S | Status %S\n", senderID, recipientID, status);
-
-                executorService.submit(new ClientWriter(clientMap.get(recipientID), marketMessage));
-                marketMessage = null;
-            }
-        }*/
     }
 }

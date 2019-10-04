@@ -58,9 +58,9 @@ public class Broker {
         System.out.println("This Broker has been assigned ID : " + id + " for this session");
         BufferedReader in;
         PrintWriter out;
-        String input = "";
 
         while (true) {
+            String input = "";
             socket = new Socket("localhost", 5000);
             Scanner user = new Scanner(System.in);
             System.out.println("Enter Market ID...");
@@ -78,8 +78,10 @@ public class Broker {
 
             if (status == 1)
                 System.out.println("Market : Executed");
-            else
+            else if (status == 0)
                 System.out.println("Market : Rejected");
+            else if (status == -1)
+                System.out.println("Router : Market address could not be found");
         }
     }
 }
