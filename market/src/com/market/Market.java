@@ -58,7 +58,7 @@ public class Market {
         PrintWriter out;
 
         int apples = 1000;
-        System.out.println("Router has allocated this server with ID : " + id);
+        System.out.println("This Market has been assigned ID : " + id + " for this session");
         System.out.println("This Market is now open!");
         System.out.println(apples + " shares are availabe on this market...");
 

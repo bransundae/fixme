@@ -35,24 +35,26 @@ public class Router {
     public static void main(String args[]) throws Exception {
         Map<Integer, Socket> clientMap = new HashMap<>();
         ArrayList<Future<Message>> futureList = new ArrayList<>();
+        ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
         ArrayList<Message> jobList = new ArrayList<>();
         Map<Future<Message>, ClientReader> futureMap = new HashMap<>();
 
 
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        Future <String> brokerResponse = null;
+        ExecutorService readerService = Executors.newFixedThreadPool(2);
+        ExecutorService writerService = Executors.newFixedThreadPool(2);
+        /*Future <String> brokerResponse = null;
         Future <String> marketResponse = null;
         String brokerMessage = null;
         String marketMessage = null;
-        String routerMessage = null;
+        String routerMessage = null;*/
         listenSocket();
 
         while (true){
             ClientReader brokerReader = new ClientReader(broker);
             ClientReader marketReader = new ClientReader(market);
 
-            futureMap.put(executorService.submit(brokerReader), brokerReader);
-            futureMap.put(executorService.submit(marketReader), marketReader);
+            futureMap.put(readerService.submit(brokerReader), brokerReader);
+            futureMap.put(readerService.submit(marketReader), marketReader);
 
             //Iterate through the futureMap and if a Callable has returned a completed Future then add the message to the job queue and remove the future - ClientReader pair
             //If the sender of the message is not registered then store the socket from the ClientReader first
@@ -62,18 +64,26 @@ public class Router {
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null) {
                         if (pair.getKey().get().getSender() == 500) {
-                            clientMap.put(pair.getKey().get().getRecipient(), pair.getKey().get().getSocket());
+                            if (clientMap.get(pair.getKey().get().getRecipient()) == null) {
+                                clientMap.put(pair.getKey().get().getRecipient(), pair.getKey().get().getSocket());
+                            }
                         }
                         jobList.add(pair.getKey().get());
                     }
-                    futureMap.remove(pair);
+                    deadFutureList.add(pair.getKey());
                 }
             }
 
+            //Clean the completed futures from the futureMap
+            for (Future<Message> f : deadFutureList){
+                futureMap.remove(f);
+            }
+            if (!deadFutureList.isEmpty())
+                deadFutureList.clear();
+
             for (int i = 0; i < jobList.size(); i++){
-                if (clientMap.get(jobList.get(i).getRecipient()) != null) {
-                    futureList.add(executorService.submit(new ClientWriter(clientMap.get(jobList.get(i).getRecipient()), jobList.get(i).toString())));
-                }
+                if (clientMap.get(jobList.get(i).getRecipient()) != null)
+                    writerService.submit(new ClientWriter(clientMap.get(jobList.get(i).getRecipient()), jobList.get(i).toString()));
                 jobList.remove(jobList.get(i));
             }
         }

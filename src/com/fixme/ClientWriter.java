@@ -10,9 +10,15 @@ public class ClientWriter implements Callable {
 
     private Socket client;
     private String message;
+    private PrintWriter out;
 
     public ClientWriter(Socket client, String message){
         this.client = client;
+        this.message = message;
+    }
+
+    public ClientWriter(PrintWriter out, String message){
+        this.out = out;
         this.message = message;
     }
 
@@ -31,7 +37,6 @@ public class ClientWriter implements Callable {
             System.out.println("Write to Client Failed");
             return null;
         }
-
         return message;
     }
 }

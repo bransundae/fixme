@@ -1,5 +1,6 @@
 package com.fixme;
 
+import java.io.PrintWriter;
 import java.net.Socket;
 
 public class Message {
@@ -8,6 +9,7 @@ public class Message {
     private int sender;
     private int recipient;
     private Socket socket;
+    private PrintWriter out;
     private boolean status;
 
     public Message(int sender, int recipient, String message){
@@ -25,8 +27,24 @@ public class Message {
         this.status = false;
     }
 
+    public Message(int sender, int recipient, String message, PrintWriter out){
+        this.message = message;
+        this.recipient = recipient;
+        this.sender = sender;
+        this.out = out;
+        this.status = false;
+    }
+
     public Socket getSocket() {
         return socket;
+    }
+
+    public PrintWriter getOut() {
+        return out;
+    }
+
+    public void setOut(PrintWriter out) {
+        this.out = out;
     }
 
     public void setSocket(Socket socket) {

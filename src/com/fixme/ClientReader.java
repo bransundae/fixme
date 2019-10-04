@@ -22,7 +22,7 @@ public class ClientReader implements Callable {
         this.serverSocket = serverSocket;
 
         try {
-            this.serverSocket.setSoTimeout(2000);
+            this.serverSocket.setSoTimeout(200);
         } catch (SocketException e){
             System.out.println("Cannot set Timeout on this Socket");
         }
@@ -42,11 +42,10 @@ public class ClientReader implements Callable {
 
     @Override
     public Object call() throws Exception {
-        System.out.println("New Client Reader Started...");
-
         //Blocking Socket call
         try {
             this.client = serverSocket.accept();
+            System.out.println("Recieved Connection");
         } catch (SocketTimeoutException e){
             return null;
         }
@@ -67,6 +66,8 @@ public class ClientReader implements Callable {
             } catch (IOException e) {
                 System.out.println("Input Read Failed");
             }
+
+            out = new PrintWriter(this.client.getOutputStream(), true);
 
             if (!message.equalsIgnoreCase("c")) {
                 String split[] = message.split("\\|");
