@@ -68,6 +68,10 @@ public class Router {
                                 clientMap.put(pair.getKey().get().getRecipient(), pair.getKey().get().getSocket());
                             }
                         }
+                        //If the sender is previously registered to the router then simply overwrite it's stored socket with the socket it used to send the current message
+                        else if (clientMap.get(pair.getKey().get().getSender()) != null){
+                            clientMap.replace(pair.getKey().get().getSender(), pair.getKey().get().getSocket());
+                        }
                         jobList.add(pair.getKey().get());
                     }
                     deadFutureList.add(pair.getKey());

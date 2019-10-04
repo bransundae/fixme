@@ -22,7 +22,7 @@ public class ClientReader implements Callable {
         this.serverSocket = serverSocket;
 
         try {
-            this.serverSocket.setSoTimeout(200);
+            this.serverSocket.setSoTimeout(2000);
         } catch (SocketException e){
             System.out.println("Cannot set Timeout on this Socket");
         }
@@ -42,29 +42,28 @@ public class ClientReader implements Callable {
 
     @Override
     public Object call() throws Exception {
+        String message = "";
+        BufferedReader in = null;
+        PrintWriter out = null;
+
         //Blocking Socket call
         try {
             this.client = serverSocket.accept();
+            this.client.setSoTimeout(2000);
+            in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+            message = in.readLine();
             System.out.println("Recieved Connection");
         } catch (SocketTimeoutException e){
+            //System.out.println("Connection Timed out");
+            return null;
+        } catch (IOException e){
+            System.out.println("Read from Client Failed");
             return null;
         }
 
-            String message = "";
-            BufferedReader in = null;
-            PrintWriter out = null;
 
-            try {
-                in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-            } catch (IOException e) {
-                System.out.println("Read from Client Failed");
+            if (message == null){
                 return null;
-            }
-
-            try {
-                message = in.readLine();
-            } catch (IOException e) {
-                System.out.println("Input Read Failed");
             }
 
             out = new PrintWriter(this.client.getOutputStream(), true);
