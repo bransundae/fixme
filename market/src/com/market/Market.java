@@ -51,16 +51,19 @@ public class Market {
     }
 
     public static void main(String args[]) throws IOException {
-
         connect();
+
+        Portfolio portfolio = new Portfolio(new Stock("FIAT", 1.0, 1000000),
+                new Stock("ASTOCK", 12.30, 100),
+                new Stock("BSTOCK", 21.20, 50),
+                new Stock("CSTOCK", 128.60, 30));
 
         BufferedReader in;
         PrintWriter out;
 
-        int apples = 1000;
         System.out.println("This Market has been assigned ID : " + id + " for this session");
-        System.out.println("This Market is now open!");
-        System.out.println(apples + " shares are availabe on this market...");
+        System.out.printf("This Market is now trading the following instruments...");
+        System.out.println(portfolio.toString());
 
         while (true){
             String input = "";
