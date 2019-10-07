@@ -1,52 +1,40 @@
 package com.market;
 
+import com.fixme.ClientReader;
+import com.fixme.ClientWriter;
+import com.fixme.Message;
+
 import java.awt.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class Market {
 
-    private static int id;
+    private static int id = -1;
     private static Socket socket;
 
+    private static ExecutorService readerService = Executors.newFixedThreadPool(2);
+    private static ExecutorService writerService = Executors.newFixedThreadPool(2);
+
     private static void connect() throws IOException {
+
+        HashMap<Future<Message>, ClientReader> futureMap = new HashMap<>();
+
+        //Create new Socket and send connection request to router on seperate Thread
         socket = new Socket("localhost", 5001);
-        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-        out.println("c");
+        writerService.submit(new ClientWriter(socket, "c"));
 
-        String sender = "";
-        String recipient = "";
-        String message = "";
-
-        String split[] = null;
-
-        try {
-            split = in.readLine().split("\\|");
-        } catch (IOException e){
-            System.out.println("Invalid Response");
-        }
-
-        if (split != null) {
-            sender = split[0];
-            recipient = split[1];
-            message = split[2];
-        }
-
-        try {
-            id = Integer.parseInt(message);
-        } catch (NumberFormatException e){
-            System.out.println("Invalid Response");
-        } catch (NullPointerException e){
-            System.out.println("Invalid Response");
-        }
-
-        if (id < 0){
-            System.exit(-1);
+        while (id == -1){
+            futureMap.put(new ClientReader());
         }
     }
 
@@ -58,12 +46,49 @@ public class Market {
                 new Stock("BSTOCK", 21.20, 50),
                 new Stock("CSTOCK", 128.60, 30));
 
-        BufferedReader in;
-        PrintWriter out;
+        HashMap<Future<Order>, ClientReader> futureMap = new HashMap<>();
+
+        ArrayList<Future<Order>> deadFutureList = new ArrayList<>();
+
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
 
         System.out.println("This Market has been assigned ID : " + id + " for this session");
         System.out.printf("This Market is now trading the following instruments...");
         System.out.println(portfolio.toString());
+
+        while (true){
+
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         while (true){
             String input = "";

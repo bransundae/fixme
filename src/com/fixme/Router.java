@@ -33,11 +33,12 @@ public class Router {
     }
 
     public static void main(String args[]) throws Exception {
+
         Map<Integer, Socket> clientMap = new HashMap<>();
-        ArrayList<Future<Message>> futureList = new ArrayList<>();
+        Map<Future<Message>, ClientReader> futureMap = new HashMap<>();
+
         ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
         ArrayList<Message> jobList = new ArrayList<>();
-        Map<Future<Message>, ClientReader> futureMap = new HashMap<>();
 
         ExecutorService readerService = Executors.newFixedThreadPool(2);
         ExecutorService writerService = Executors.newFixedThreadPool(2);
