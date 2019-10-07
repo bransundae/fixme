@@ -54,10 +54,9 @@ public class ClientReader implements Callable {
         out = new PrintWriter(this.client.getOutputStream(), true);
 
         if (!message.equalsIgnoreCase("c")) {
-            String split[] = message.split("\\|");
-            this.message = new Message(Integer.parseInt(split[0]), Integer.parseInt(split[1]), split[2], client);
+            this.message = new Message(message, client);
         }
-        System.out.printf("New Message From Client : %S | Recipient : %S | Message %S\n", this.message.getSender(), this.message.getRecipient(), this.message.getMessage());
+        System.out.printf("New Message From Client : %S | Recipient : %S | Message %S\n", this.message.getSenderID(), this.message.getRecipientID(), this.message.getMessage());
         return this.message;
     }
 }

@@ -84,8 +84,10 @@ public class Router {
             for (int i = 0; i < jobList.size(); i++){
                 if (clientMap.get(jobList.get(i).getRecipient()) != null)
                     writerService.submit(new ClientWriter(clientMap.get(jobList.get(i).getRecipient()), jobList.get(i).toString()));
-                else
-                    writerService.submit(new ClientWriter(clientMap.get(jobList.get(i).getSender()), "500|" + jobList.get(i).getSender() + "|-1"));
+                else {
+                    String soh = "" + (char)1;
+                    writerService.submit(new ClientWriter(clientMap.get(jobList.get(i).getSender()), "500" + soh + jobList.get(i).getSender() + soh +"-1"));
+                }
                 jobList.remove(jobList.get(i));
             }
         }

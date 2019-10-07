@@ -85,6 +85,7 @@ public class Message {
 
     @Override
     public String toString() {
-        return sender + "|" + recipient + "|" + message + "|" + status;
+        String soh  = "" + (char)1;
+        return sender + soh + recipient + soh + message + soh + status;
     }
 }

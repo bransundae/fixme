@@ -52,7 +52,7 @@ public class Market {
                 Map.Entry<Future<Message>, ClientReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey() != null){
-                        if (pair.getKey().get().getSender() == 500 && pair.getKey().get().getMessage() != null){
+                        if (pair.getKey().get().getSenderID() == 500 && pair.getKey().get().getMessage() != null){
                             try {
                                 id = Integer.parseInt(pair.getKey().get().getMessage());
                             } catch (NumberFormatException e) {
@@ -84,7 +84,7 @@ public class Market {
 
 
 
-        ArrayList<Order> orderList = new ArrayList<>();
+        ArrayList<Message> orderList = new ArrayList<>();
 
         ExecutorService executorService = Executors.newFixedThreadPool(2);
 
@@ -101,9 +101,9 @@ public class Market {
                 Map.Entry<Future<Message>, ClientReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null){
-                        if (pair.getKey().get().getSender() != 500 && pair.getKey().get().getMessage() != null){
+                        if (pair.getKey().get().getSenderID() != 500 && pair.getKey().get().getMessage() != null){
                             //TODO Refactor Message to Parse FIX
-                            orderList.add(new Order(pair.getKey().get().getMessage()));
+                            orderList.add(pair.getKey().get());
                         }
                     }
                     deadFutureList.add(pair.getKey());
@@ -117,7 +117,7 @@ public class Market {
 
             //Business Logic
             for (int i = 0; i < orderList.size(); i++){
-                Order order = orderList.get(i);
+                Message order = orderList.get(i);
                 if (portfolio.getStock(order.getStock().getName()) != null){
                     if (order.isBuy()){
                         if (order.getBid() <= portfolio.getStock(order.getStock().getName()).getPrice()){

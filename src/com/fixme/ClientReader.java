@@ -68,7 +68,8 @@ public class ClientReader implements Callable {
         out = new PrintWriter(this.client.getOutputStream(), true);
 
         if (!message.equalsIgnoreCase("c")) {
-            String split[] = message.split("\\|");
+            String soh = "" + (char)1;
+            String split[] = message.split(soh);
             this.message = new Message(Integer.parseInt(split[0]), Integer.parseInt(split[1]), split[2], client);
         }
         //If client ID does not exist then assign client an ID and store socket in HashMap

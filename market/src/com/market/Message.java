@@ -6,23 +6,57 @@ import java.net.Socket;
 public class Message {
 
     private String message;
-    private int sender;
-    private int recipient;
+    private int senderID;
+    private int recipientID;
+    private Stock stock;
+    private boolean buy;
+    private double bid;
+    private int quantity;
     private Socket socket;
-    private PrintWriter out;
     private boolean status;
 
-    public Message(int sender, int recipient, String message){
-        this.message = message;
-        this.recipient = recipient;
-        this.sender = sender;
-        this.status = false;
-    }
-
-    public Message(int sender, int recipient, String message, Socket socket){
-        this.message = message;
-        this.recipient = recipient;
-        this.sender = sender;
+    public Message(String fixMessage, Socket socket){
+        String soh = "" + (char)1;
+        String split[] = fixMessage.split(soh);
+        for (int i = 0 ; i < split.length; i++){
+            String tag[] = split[i].split("=");
+            if (tag[1] != null) {
+                switch (tag[0]) {
+                    //BUY OR SELL
+                    case "54":
+                        if (tag[1] == "1")
+                            buy = true;
+                        else
+                            buy = false;
+                        break;
+                    //RECIPIENT
+                    case "56":
+                        try {
+                            recipientID = Integer.parseInt(tag[1]);
+                        } catch (NumberFormatException e){
+                            System.out.println("FIX ERROR");
+                        }
+                        break;
+                    //CLIENT
+                    case "115":
+                        try {
+                            senderID = Integer.parseInt(tag[1]);
+                        } catch (NumberFormatException e){
+                            System.out.println("FIX ERROR");
+                        }
+                        break;
+                    //STOCK
+                    case "55":
+                        stock = Market.portfolio.getStock(tag[1]);
+                        break;
+                    //PRICE
+                    case "44":
+                        bid = Double.parseDouble(tag[1]);
+                        break;
+                }
+            }
+        }
+        this.message = fixMessage;
         this.socket = socket;
         this.status = false;
     }
@@ -31,52 +65,72 @@ public class Message {
         return socket;
     }
 
-    public PrintWriter getOut() {
-        return out;
-    }
-
-    public void setOut(PrintWriter out) {
-        this.out = out;
-    }
-
     public void setSocket(Socket socket) {
         this.socket = socket;
     }
 
-    public int getRecipient() {
-        return recipient;
+    public int getRecipientID() {
+        return recipientID;
     }
 
-    public int getSender() {
-        return sender;
-    }
-
-    public String getMessage() {
-        return message;
+    public int getSenderID() {
+        return senderID;
     }
 
     public boolean getStatus() {
         return this.status;
     }
 
-    public void setMessage(String message) {
-        this.message = message;
+    public void setRecipientID(int recipient) {
+        this.recipientID = recipient;
     }
 
-    public void setRecipient(int recipient) {
-        this.recipient = recipient;
-    }
-
-    public void setSender(int sender) {
-        this.sender = sender;
+    public void setSenderID(int sender) {
+        this.senderID = sender;
     }
 
     public void setStatus(boolean status) {
         this.status = status;
     }
 
+    public double getBid() {
+        return bid;
+    }
+
+    public Stock getStock() {
+        return stock;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public void setBid(double bid) {
+        this.bid = bid;
+    }
+
+    public void setBuy(boolean buy) {
+        this.buy = buy;
+    }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public void setStock(Stock stock) {
+        this.stock = stock;
+    }
+
+    public boolean isBuy() {
+        return buy;
+    }
+
+    public boolean isStatus() {
+        return status;
+    }
+
     @Override
     public String toString() {
-        return sender + "|" + recipient + "|" + message + "|" + status;
+        return this.message;
     }
 }

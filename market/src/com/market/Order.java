@@ -18,57 +18,41 @@ public class Order {
             String tag[] = split[i].split("=");
             if (tag[1] != null) {
                 switch (tag[0]) {
-                /*//FIX VERSION
-                case "8" :
-                    if (tag[1] == ""){
-                    }
-                    break ;
-
-                    //ClientOrderID
-                case "11" :
-
-
-                //TYPE
-                case "35" :
-                    if () {
-
-                    }
-                    break ;*/
                     //BUY OR SELL
-                    case "54":
-                        if (tag[1] == "1")
-                            buy = true;
-                        else
-                            buy = false;
-                        break;
-                    //RECIPIENT
-                    case "56":
-                        try {
-                            recipientID = Integer.parseInt(tag[1]);
-                        } catch (NumberFormatException e){
-                            System.out.println("FIX ERROR");
-                        }
-                        break;
+                case "54":
+                    if (tag[1] == "1")
+                        buy = true;
+                    else
+                        buy = false;
+                    break;
+                //RECIPIENT
+                case "56":
+                    try {
+                        recipientID = Integer.parseInt(tag[1]);
+                    } catch (NumberFormatException e){
+                        System.out.println("FIX ERROR");
+                    }
+                    break;
 
-                    //CLIENT
-                    case "115":
-                        try {
-                            clientID = Integer.parseInt(tag[1]);
-                        } catch (NumberFormatException e){
-                            System.out.println("FIX ERROR");
-                        }
-                        break;
+                //CLIENT
+                case "115":
+                    try {
+                        clientID = Integer.parseInt(tag[1]);
+                    } catch (NumberFormatException e){
+                        System.out.println("FIX ERROR");
+                    }
+                    break;
 
-                    //STOCK
-                    case "55":
-                        stock = Market.portfolio.getStock(tag[1]);
-                        break;
+                //STOCK
+                case "55":
+                    stock = Market.portfolio.getStock(tag[1]);
+                    break;
 
-                    //PRICE
-                    case "44":
-                        bid = Double.parseDouble(tag[1]);
-                        break;
-                }
+                //PRICE
+                case "44":
+                    bid = Double.parseDouble(tag[1]);
+                    break;
+            }
             }
         }
     }
