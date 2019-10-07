@@ -27,14 +27,6 @@ public class Message {
         this.status = false;
     }
 
-    public Message(int sender, int recipient, String message, PrintWriter out){
-        this.message = message;
-        this.recipient = recipient;
-        this.sender = sender;
-        this.out = out;
-        this.status = false;
-    }
-
     public Socket getSocket() {
         return socket;
     }

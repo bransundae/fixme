@@ -29,6 +29,14 @@ public class Portfolio {
         this.portfolio.remove(stock);
     }
 
+    public Stock getStock(String name){
+        for (Stock s : this.portfolio){
+            if (s.getName().equalsIgnoreCase(name))
+                return s;
+        }
+        return null;
+    }
+
     @Override
     public String toString() {
 

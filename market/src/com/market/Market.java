@@ -27,6 +27,12 @@ public class Market {
     private static ExecutorService readerService = Executors.newFixedThreadPool(2);
     private static ExecutorService writerService = Executors.newFixedThreadPool(2);
 
+    public static Portfolio portfolio = new Portfolio(
+            new Stock("FIAT", 1.0, 1000000),
+            new Stock("ASTOCK", 12.30, 100),
+            new Stock("BSTOCK", 21.20, 50),
+            new Stock("CSTOCK", 128.60, 30));
+
     private static Socket connect() throws IOException, ExecutionException, InterruptedException {
 
         HashMap<Future<Message>, ClientReader> futureMap = new HashMap<>();
@@ -76,11 +82,7 @@ public class Market {
 
         System.out.println("This Market has been assigned ID : " + id + " for this session");
 
-        Portfolio portfolio = new Portfolio(
-                new Stock("FIAT", 1.0, 1000000),
-                new Stock("ASTOCK", 12.30, 100),
-                new Stock("BSTOCK", 21.20, 50),
-                new Stock("CSTOCK", 128.60, 30));
+
 
         ArrayList<Order> orderList = new ArrayList<>();
 
@@ -100,18 +102,41 @@ public class Market {
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null){
                         if (pair.getKey().get().getSender() != 500 && pair.getKey().get().getMessage() != null){
-                            orderList.add();
+                            //TODO Refactor Message to Parse FIX
+                            orderList.add(new Order(pair.getKey().get().getMessage()));
                         }
                     }
-
                     deadFutureList.add(pair.getKey());
                 }
             }
 
+            for (Future<Message> f : deadFutureList)
+                futureMap.remove(f);
+            if (!deadFutureList.isEmpty())
+                deadFutureList.clear();
 
+            //Business Logic
+            for (int i = 0; i < orderList.size(); i++){
+                Order order = orderList.get(i);
+                if (portfolio.getStock(order.getStock().getName()) != null){
+                    if (order.isBuy()){
+                        if (order.getBid() <= portfolio.getStock(order.getStock().getName()).getPrice()){
+                            //TODO MARKET WILL SEARCH FOR BROKERS THAT WILL ACCEPT THE BID
+                        }
+                        else {
+                            //TODO MARKET WILL SELL STOCKS
+                        }
+                    }
+                    else {
+                        if (order.getBid() >= portfolio.getStock(order.getStock().getName()).getPrice()){
 
-
-
+                        }
+                        else {
+                            //TODO MARKET PURCHASE STOCKS
+                        }
+                    }
+                }
+            }
         }
 
 
