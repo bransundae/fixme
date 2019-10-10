@@ -20,28 +20,30 @@ public class Message {
             if (tag.length > 1) {
                 switch (tag[0]) {
                     case "35":
-                        if (tag[1] == "A"){
-                            type = "register";
-                        } else if (tag[1] == "0"){
-                            type = "pulse";
+                        if (tag[1].equalsIgnoreCase("A")){
+                            type = "A";
+                        } else if (tag[1].equalsIgnoreCase("0")){
+                            type = "0";
                         }
                         else {
-                            type = "order";
+                            type = "D";
                         }
+                        System.out.println(type);
+                        break;
                     //RECIPIENT
                     case "56":
                         try {
                             recipientID = Integer.parseInt(tag[1]);
                         } catch (NumberFormatException e){
-                            System.out.println("FIX ERROR");
+                            System.out.println("FIX ERROR RECIPIENT");
                         }
                         break;
-                    //CLIENT
+                    //SENDER
                     case "115":
                         try {
                             senderID = Integer.parseInt(tag[1]);
                         } catch (NumberFormatException e){
-                            System.out.println("FIX ERROR");
+                            System.out.println("FIX ERROR SENDER");
                         }
                         break;
                 }
@@ -126,20 +128,20 @@ public class Message {
         int i = 0;
 
         if (type != null){
-            toReturn += type;
+            toReturn += "35="+type;
             i++;
         }
 
         if (senderID != -1){
             if (i == 1)
                 toReturn += soh;
-            toReturn += senderID;
+            toReturn += "115="+senderID;
         }
 
         if (recipientID != -1){
             if (i > 0)
                 toReturn += soh;
-            toReturn += recipientID;
+            toReturn += "56="+recipientID;
         }
         return toReturn;
     }

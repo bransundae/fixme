@@ -60,7 +60,7 @@ public class Router {
                 Map.Entry<Future<Message>, ClientReader> pair = (Map.Entry<Future<Message>, ClientReader>)it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null) {
-                        if (pair.getKey().get().getType().equalsIgnoreCase("register")) {
+                        if (pair.getKey().get().getType().equalsIgnoreCase("A")) {
                             if (clientMap.get(pair.getKey().get().getSenderID()) == null) {
                                 clientMap.put(pair.getKey().get().getSenderID(), pair.getKey().get().getSocket());
                             }
@@ -86,7 +86,7 @@ public class Router {
                 if (clientMap.get(jobList.get(i).getRecipientID()) != null)
                     writerService.submit(new ClientWriter(clientMap.get(jobList.get(i).getRecipientID()), jobList.get(i)));
                 else {
-                    Message message = new Message(500, jobList.get(i).getSenderID(), "register", clientMap.get(jobList.get(i).getSenderID()));
+                    Message message = new Message(500, jobList.get(i).getSenderID(), "A", clientMap.get(jobList.get(i).getSenderID()));
                     writerService.submit(new ClientWriter(clientMap.get(jobList.get(i).getSenderID()), message));
                 }
                 jobList.remove(jobList.get(i));

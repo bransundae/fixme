@@ -52,7 +52,7 @@ public class Market {
                         if (pair.getKey().get() != null) {
                             if (pair.getKey().get().getSenderID() == 500 && pair.getKey().get().getMessage() != null) {
                                 try {
-                                    id = Integer.parseInt(pair.getKey().get().getMessage());
+                                    id = pair.getKey().get().getRecipientID();
                                 } catch (NumberFormatException e) {
                                     System.out.println("Router Attempted to assign an Invalid ID");
                                     System.exit(-1);
@@ -78,17 +78,12 @@ public class Market {
         Socket socket = connect();
         HashMap<Future<Message>, ClientReader> futureMap = new HashMap<>();
         ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
-
-        System.out.println("This Market has been assigned ID : " + id + " for this session");
-
-
-
         ArrayList<Order> orderList = new ArrayList<>();
 
         ExecutorService executorService = Executors.newFixedThreadPool(2);
 
         System.out.println("This Market has been assigned ID : " + id + " for this session");
-        System.out.printf("This Market is now trading the following instruments...");
+        System.out.println("This Market is now trading the following instruments...");
         System.out.println(portfolio.toString());
 
         while (true){

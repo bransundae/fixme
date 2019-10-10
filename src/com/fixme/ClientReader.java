@@ -54,6 +54,7 @@ public class ClientReader implements Callable {
             System.out.println("New Connection From Client");
             in = new BufferedReader(new InputStreamReader(client.getInputStream()));
             input = in.readLine();
+            System.out.println(input);
         } catch (SocketTimeoutException e){
             return null;
         } catch (IOException e){
@@ -61,16 +62,16 @@ public class ClientReader implements Callable {
             return null;
         }
 
-        if (message == null){
+        if (input == null){
             return null;
         }
 
         out = new PrintWriter(this.client.getOutputStream(), true);
 
-        Message message = new Message(input, this.client);
+        this.message = new Message(input, this.client);
 
         //If client ID does not exist then assign client an ID and store socket in HashMap
-        if (message.getType().equalsIgnoreCase("register")) {
+        if (this.message.getType().equalsIgnoreCase("A")) {
             Router.clientID++;
             message.setSenderID(Router.clientID);
         }

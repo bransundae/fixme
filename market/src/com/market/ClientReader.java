@@ -35,14 +35,14 @@ public class ClientReader implements Callable {
 
     @Override
     public Object call() throws Exception {
-        String message = "";
+        String input = "";
         BufferedReader in = null;
         PrintWriter out = null;
 
         //Blocking Socket call
         try {
             in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-            message = in.readLine();
+            input = in.readLine();
         } catch (SocketTimeoutException e){
             return null;
         } catch (IOException e){
@@ -50,16 +50,12 @@ public class ClientReader implements Callable {
             return null;
         }
 
-        if (message == null){
+        if (input == null){
             return null;
         }
 
-        out = new PrintWriter(this.client.getOutputStream(), true);
+        this.message = new Message(input, client);
 
-        if (!message.equalsIgnoreCase("c")) {
-            this.message = new Message(message, client);
-            System.out.println(this.message.toString());
-        }
         System.out.printf("New Message From Client : %S | Recipient : %S | Message %S\n", this.message.getSenderID(), this.message.getRecipientID(), this.message.getMessage());
         return this.message;
     }
