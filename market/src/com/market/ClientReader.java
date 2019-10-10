@@ -1,5 +1,8 @@
 package com.market;
 
+import com.fixme.lib.Message;
+
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -55,6 +58,7 @@ public class ClientReader implements Callable {
 
         if (!message.equalsIgnoreCase("c")) {
             this.message = new Message(message, client);
+            System.out.println(this.message.toString());
         }
         System.out.printf("New Message From Client : %S | Recipient : %S | Message %S\n", this.message.getSenderID(), this.message.getRecipientID(), this.message.getMessage());
         return this.message;

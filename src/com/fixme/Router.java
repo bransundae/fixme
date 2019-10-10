@@ -1,6 +1,7 @@
 package com.fixme;
 
-import java.awt.*;
+import com.fixme.lib.Message;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -59,14 +60,14 @@ public class Router {
                 Map.Entry<Future<Message>, ClientReader> pair = (Map.Entry<Future<Message>, ClientReader>)it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null) {
-                        if (pair.getKey().get().getSender() == 500) {
-                            if (clientMap.get(pair.getKey().get().getRecipient()) == null) {
-                                clientMap.put(pair.getKey().get().getRecipient(), pair.getKey().get().getSocket());
+                        if (pair.getKey().get().getType().equalsIgnoreCase("register")) {
+                            if (clientMap.get(pair.getKey().get().getSenderID()) == null) {
+                                clientMap.put(pair.getKey().get().getSenderID(), pair.getKey().get().getSocket());
                             }
                         }
                         //If the sender is previously registered to the router then simply overwrite it's stored socket with the socket it used to send the current message
-                        else if (clientMap.get(pair.getKey().get().getSender()) != null){
-                            clientMap.replace(pair.getKey().get().getSender(), pair.getKey().get().getSocket());
+                        else if (clientMap.get(pair.getKey().get().getSenderID()) != null){
+                            clientMap.replace(pair.getKey().get().getSenderID(), pair.getKey().get().getSocket());
                         }
                         jobList.add(pair.getKey().get());
                     }
@@ -82,11 +83,11 @@ public class Router {
                 deadFutureList.clear();
 
             for (int i = 0; i < jobList.size(); i++){
-                if (clientMap.get(jobList.get(i).getRecipient()) != null)
-                    writerService.submit(new ClientWriter(clientMap.get(jobList.get(i).getRecipient()), jobList.get(i).toString()));
+                if (clientMap.get(jobList.get(i).getRecipientID()) != null)
+                    writerService.submit(new ClientWriter(clientMap.get(jobList.get(i).getRecipientID()), jobList.get(i)));
                 else {
-                    String soh = "" + (char)1;
-                    writerService.submit(new ClientWriter(clientMap.get(jobList.get(i).getSender()), "500" + soh + jobList.get(i).getSender() + soh +"-1"));
+                    Message message = new Message(500, jobList.get(i).getSenderID(), "register", clientMap.get(jobList.get(i).getSenderID()));
+                    writerService.submit(new ClientWriter(clientMap.get(jobList.get(i).getSenderID()), message));
                 }
                 jobList.remove(jobList.get(i));
             }

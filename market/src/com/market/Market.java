@@ -1,14 +1,11 @@
 package com.market;
 
-import com.market.ClientReader;
-import com.market.ClientWriter;
-import com.market.Message;
+import com.fixme.lib.Message;
+import com.fixme.lib.Order;
+import com.fixme.lib.Portfolio;
+import com.fixme.lib.Stock;
 
-import java.awt.*;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,7 +38,7 @@ public class Market {
         //Create new Socket and send connection request to router on separate Thread
         socket = new Socket("localhost", 5001);
 
-        writerService.submit(new ClientWriter(socket, "c"));
+        writerService.submit(new ClientWriter(socket, "35=A"));
 
         while (id == -1){
             ClientReader clientReader = new ClientReader(socket);
@@ -52,12 +49,14 @@ public class Market {
                 Map.Entry<Future<Message>, ClientReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey() != null){
-                        if (pair.getKey().get().getSenderID() == 500 && pair.getKey().get().getMessage() != null){
-                            try {
-                                id = Integer.parseInt(pair.getKey().get().getMessage());
-                            } catch (NumberFormatException e) {
-                                System.out.println("Router Attempted to assign an Invalid ID");
-                                System.exit(-1);
+                        if (pair.getKey().get() != null) {
+                            if (pair.getKey().get().getSenderID() == 500 && pair.getKey().get().getMessage() != null) {
+                                try {
+                                    id = Integer.parseInt(pair.getKey().get().getMessage());
+                                } catch (NumberFormatException e) {
+                                    System.out.println("Router Attempted to assign an Invalid ID");
+                                    System.exit(-1);
+                                }
                             }
                         }
                     }
@@ -84,7 +83,7 @@ public class Market {
 
 
 
-        ArrayList<Message> orderList = new ArrayList<>();
+        ArrayList<Order> orderList = new ArrayList<>();
 
         ExecutorService executorService = Executors.newFixedThreadPool(2);
 
@@ -103,7 +102,7 @@ public class Market {
                     if (pair.getKey().get() != null){
                         if (pair.getKey().get().getSenderID() != 500 && pair.getKey().get().getMessage() != null){
                             //TODO Refactor Message to Parse FIX
-                            orderList.add(pair.getKey().get());
+                            orderList.add(new Order(pair.getKey().get().getMessage(), pair.getKey().get().getSocket(), portfolio));
                         }
                     }
                     deadFutureList.add(pair.getKey());
@@ -117,7 +116,7 @@ public class Market {
 
             //Business Logic
             for (int i = 0; i < orderList.size(); i++){
-                Message order = orderList.get(i);
+                Order order = orderList.get(i);
                 if (portfolio.getStock(order.getStock().getName()) != null){
                     if (order.isBuy()){
                         if (order.getBid() <= portfolio.getStock(order.getStock().getName()).getPrice()){

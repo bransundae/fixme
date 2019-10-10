@@ -1,5 +1,7 @@
 package com.fixme;
 
+import com.fixme.lib.Message;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
@@ -9,15 +11,15 @@ import java.util.concurrent.Callable;
 public class ClientWriter implements Callable {
 
     private Socket client;
-    private String message;
+    private Message message;
     private PrintWriter out;
 
-    public ClientWriter(Socket client, String message){
+    public ClientWriter(Socket client, Message message){
         this.client = client;
         this.message = message;
     }
 
-    public ClientWriter(PrintWriter out, String message){
+    public ClientWriter(PrintWriter out, Message message){
         this.out = out;
         this.message = message;
     }
