@@ -86,7 +86,7 @@ public class Router {
                 if (clientMap.get(jobList.get(i).getRecipientID()) != null)
                     writerService.submit(new ClientWriter(clientMap.get(jobList.get(i).getRecipientID()), jobList.get(i)));
                 else {
-                    Message message = new Message(500, jobList.get(i).getSenderID(), "A", clientMap.get(jobList.get(i).getSenderID()));
+                    Message message = new Message(500, jobList.get(i).getSenderID(), "0", clientMap.get(jobList.get(i).getSenderID()));
                     writerService.submit(new ClientWriter(clientMap.get(jobList.get(i).getSenderID()), message));
                 }
                 jobList.remove(jobList.get(i));

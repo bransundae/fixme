@@ -1,62 +1,126 @@
 package com.broker;
 
-import java.awt.*;
+import com.fixme.lib.Message;
+import com.fixme.lib.Order;
+import com.fixme.lib.Portfolio;
+import com.fixme.lib.Stock;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.Scanner;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class Broker {
 
     private static int id = -1;
     private static Socket socket;
+    private static ExecutorService readerService = Executors.newFixedThreadPool(2);
+    private static ExecutorService writerService = Executors.newFixedThreadPool(2);
 
-    private static void connect() throws IOException {
+    public static Portfolio portfolio = new Portfolio(
+            new Stock("FIAT", 1.0, 10),
+            new Stock("ASTOCK", 12.30, 10),
+            new Stock("BSTOCK", 21.20, 5),
+            new Stock("CSTOCK", 128.60, 3));
+
+    private static Socket connect() throws IOException, ExecutionException, InterruptedException {
+
+        HashMap<Future<Message>, ClientReader> futureMap = new HashMap<>();
+        ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
+
+        //Create a new Socket and send registration request to router
         socket = new Socket("localhost", 5000);
 
-        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-        out.println("c");
+        writerService.submit(new ClientWriter(socket, "35=A"));
 
-        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        while (id == -1) {
+            ClientReader clientReader = new ClientReader(socket);
+            futureMap.put(readerService.submit(clientReader), clientReader);
 
-        String sender = "";
-        String recipient = "";
-        String message = "";
+            Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<Future<Message>, ClientReader> pair = it.next();
+                if (pair.getKey().isDone()) {
+                    if (pair.getKey() != null) {
+                        if (pair.getKey().get() != null) {
+                            if (pair.getKey().get().getSenderID() == 500 && pair.getKey().get().getMessage() != null) {
+                                try {
+                                    id = pair.getKey().get().getRecipientID();
+                                } catch (NumberFormatException e) {
+                                    System.out.println("Router Attempted to assign an Invalid ID");
+                                    System.exit(-1);
+                                }
+                            }
+                        }
+                    }
+                    deadFutureList.add(pair.getKey());
+                }
+            }
 
-        String split[] = null;
-
-        try {
-            split = in.readLine().split("\\|");
-        } catch (IOException e){
-            System.out.println("Invalid Response");
+            for (Future<Message> f : deadFutureList)
+                futureMap.remove(f);
+            if (!futureMap.isEmpty())
+                deadFutureList.clear();
         }
-
-        if (split != null) {
-            sender = split[0];
-            recipient = split[1];
-            message = split[2];
-        }
-
-        try {
-            id = Integer.parseInt(message);
-        } catch (NumberFormatException e){
-            System.out.println("Invalid Response");
-        } catch (NullPointerException e){
-            System.out.println("Invalid Response");
-        }
-
-        if (id < 0){
-            System.exit(-1);
-        }
+        return socket;
     }
 
+    public static void main(String args[]) throws IOException, ExecutionException, InterruptedException {
+        Socket socket = connect();
+        HashMap<Future<Message>, ClientReader> futureMap = new HashMap<>();
+        ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
+        ArrayList<Order> responseList = new ArrayList<>();
 
-    public static void main(String args[]) throws IOException {
-        connect();
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+
         System.out.println("This Broker has been assigned ID : " + id + " for this session");
-        BufferedReader in;
+        System.out.println("This Broker is now trading the following instruments...");
+        System.out.println(portfolio.toString());
+
+        while (true){
+            ClientReader clientReader = new ClientReader(socket);
+            futureMap.put(executorService.submit(clientReader), clientReader);
+
+            Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
+            while (it.hasNext()){
+                Map.Entry<Future<Message>, ClientReader> pair = it.next();
+                if (pair.getKey().isDone()){
+                    if (pair.getKey().get() != null){
+                        //Message is not from server and therefore constitutes an order
+                        if (pair.getKey().get().getSenderID() != 500 && pair.getKey().get().getMessage() != null){
+                            //TODO Refactor Message to Parse FIX
+                            responseList.add(new Order(pair.getKey().get().getMessage(), pair.getKey().get().getSocket(), portfolio));
+                        }
+                    }
+                    deadFutureList.add(pair.getKey());
+                }
+            }
+
+            for (Future<Message> f : deadFutureList)
+                futureMap.remove(f);
+            if (!deadFutureList.isEmpty())
+                deadFutureList.clear();
+
+            //Business Logic
+            for (int i = 0; i < responseList.size(); i++){
+                Order order = responseList.get(i);
+                
+            }
+        }
+
+
+
+
+
+
+
+        /*BufferedReader in;
         PrintWriter out;
 
         while (true) {
@@ -82,6 +146,6 @@ public class Broker {
                 System.out.println("Market : Rejected");
             else if (status == -1)
                 System.out.println("Router : Market address could not be found");
-        }
+        }*/
     }
 }

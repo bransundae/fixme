@@ -67,7 +67,7 @@ public class Market {
             for (Future<Message> f : deadFutureList)
                 futureMap.remove(f);
             if (!futureMap.isEmpty())
-                deadFutureList.clone();
+                deadFutureList.clear();
         }
 
         return socket;
@@ -95,6 +95,7 @@ public class Market {
                 Map.Entry<Future<Message>, ClientReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null){
+                        //Message is not from server and therefore constitutes an order
                         if (pair.getKey().get().getSenderID() != 500 && pair.getKey().get().getMessage() != null){
                             //TODO Refactor Message to Parse FIX
                             orderList.add(new Order(pair.getKey().get().getMessage(), pair.getKey().get().getSocket(), portfolio));
@@ -116,6 +117,7 @@ public class Market {
                     if (order.isBuy()){
                         if (order.getBid() <= portfolio.getStock(order.getStock().getName()).getPrice()){
                             //TODO MARKET WILL SEARCH FOR BROKERS THAT WILL ACCEPT THE BID
+
                         }
                         else {
                             //TODO MARKET WILL SELL STOCKS
@@ -127,6 +129,8 @@ public class Market {
                         }
                         else {
                             //TODO MARKET PURCHASE STOCKS
+                            order.setStatus("8");
+                            writerService.submit(new ClientWriter(socket, order.toFix()));
                         }
                     }
                 }

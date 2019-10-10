@@ -58,7 +58,7 @@ public class ClientReader implements Callable {
         } catch (SocketTimeoutException e){
             return null;
         } catch (IOException e){
-            System.out.println("Read from Client Failed");
+            System.out.println("Read from Router Failed");
             return null;
         }
 
@@ -76,7 +76,7 @@ public class ClientReader implements Callable {
             message.setSenderID(Router.clientID);
         }
 
-        System.out.printf("New Message From Client : %S | Recipient : %S | Message %S\n", message.getSenderID(), message.getRecipientID(), this.message.getMessage());
+        System.out.printf("New Message From Router : %S | Recipient : %S | Message %S\n", message.getSenderID(), message.getRecipientID(), this.message.getMessage());
         return this.message;
     }
 }

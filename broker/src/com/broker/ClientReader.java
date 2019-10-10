@@ -1,13 +1,11 @@
-package com.market;
+package com.broker;
 
 import com.fixme.lib.Message;
 
-import java.awt.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
@@ -46,7 +44,7 @@ public class ClientReader implements Callable {
         } catch (SocketTimeoutException e){
             return null;
         } catch (IOException e){
-            System.out.println("Read from Router Failed");
+            System.out.println("Read from Client Failed");
             return null;
         }
 
@@ -56,7 +54,7 @@ public class ClientReader implements Callable {
 
         this.message = new Message(input, client);
 
-        System.out.printf("New Message From Router : %S | Recipient : %S | Message %S\n", this.message.getSenderID(), this.message.getRecipientID(), this.message.getMessage());
+        System.out.printf("New Message From Client : %S | Recipient : %S | Message %S\n", this.message.getSenderID(), this.message.getRecipientID(), this.message.getMessage());
         return this.message;
     }
 }

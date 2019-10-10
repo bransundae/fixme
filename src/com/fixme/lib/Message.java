@@ -9,7 +9,7 @@ public class Message {
     protected int senderID = -1;
     protected int recipientID = -1;
     protected Socket socket;
-    protected boolean status;
+    protected String status;
 
     public Message(String fixMessage, Socket socket){
         this.message = fixMessage;
@@ -25,8 +25,11 @@ public class Message {
                         } else if (tag[1].equalsIgnoreCase("0")){
                             type = "0";
                         }
-                        else {
+                        else if (tag[1].equalsIgnoreCase("D")){
                             type = "D";
+                        }
+                        else{
+                            type = "9";
                         }
                         System.out.println(type);
                         break;
@@ -54,7 +57,6 @@ public class Message {
         }
         this.message = fixMessage;
         this.socket = socket;
-        this.status = false;
     }
 
     public Message(int senderID, int recipientID, String type, Socket socket){
@@ -62,7 +64,6 @@ public class Message {
         this.recipientID = recipientID;
         this.type = type;
         this.socket = socket;
-        this.status = false;
     }
 
     public Socket getSocket() {
@@ -89,7 +90,7 @@ public class Message {
         return senderID;
     }
 
-    public boolean getStatus() {
+    public String getStatus() {
         return this.status;
     }
 
@@ -101,7 +102,7 @@ public class Message {
         this.senderID = sender;
     }
 
-    public void setStatus(boolean status) {
+    public void setStatus(String status) {
         this.status = status;
     }
 
@@ -111,10 +112,6 @@ public class Message {
 
     public void setMessage(String message) {
         this.message = message;
-    }
-
-    public boolean isStatus() {
-        return status;
     }
 
     @Override

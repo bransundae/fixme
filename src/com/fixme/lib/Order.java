@@ -1,5 +1,6 @@
 package com.fixme.lib;
 
+import java.io.IOException;
 import java.net.Socket;
 
 public class Order extends Message{
@@ -37,6 +38,7 @@ public class Order extends Message{
                         } catch (NumberFormatException e){
                             System.out.println("FIX ERROR");
                         }
+                        break;
 
                     //PRICE
                     case "44":
@@ -45,6 +47,11 @@ public class Order extends Message{
                         } catch (NumberFormatException e){
                             System.out.println("FIX ERROR");
                         }
+                        break;
+
+                        //ORDER COMPLETION
+                    case "39":
+                        status = tag[1];
                         break;
                 }
             }
@@ -81,5 +88,11 @@ public class Order extends Message{
 
     public void setBuy(boolean buy) {
         this.buy = buy;
+    }
+
+    @Override
+    public String toFix() {
+        String soh = "" + (char)1;
+        return "39=" + status + soh + super.toFix();
     }
 }
