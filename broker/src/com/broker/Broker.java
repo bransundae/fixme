@@ -11,10 +11,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
 
 public class Broker {
 
@@ -77,13 +74,31 @@ public class Broker {
         ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
         ArrayList<Order> responseList = new ArrayList<>();
 
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        Future<String> inputFuture = null;
+        String input;
+
+        ExecutorService executorService = Executors.newFixedThreadPool(3);
 
         System.out.println("This Broker has been assigned ID : " + id + " for this session");
         System.out.println("This Broker is now trading the following instruments...");
         System.out.println(portfolio.toString());
 
         while (true){
+            InputReader inputReader = new InputReader();
+
+            if (inputFuture == null || inputFuture.isCancelled()) {
+                inputFuture = executorService.submit(inputReader);
+                try {
+                    input = inputFuture.get(200, TimeUnit.MILLISECONDS);
+                } catch (TimeoutException e) {
+                    System.out.println("Cancelling Input Reading");
+                    inputFuture.cancel(true);
+                }
+            }
+            else if (inputFuture.isDone()){
+
+            }
+
             ClientReader clientReader = new ClientReader(socket);
             futureMap.put(executorService.submit(clientReader), clientReader);
 
@@ -109,16 +124,9 @@ public class Broker {
 
             //Business Logic
             for (int i = 0; i < responseList.size(); i++){
-                Order order = responseList.get(i);
-                
+                System.out.println("Response From Router : " + responseList.get(i).toFix());
             }
         }
-
-
-
-
-
-
 
         /*BufferedReader in;
         PrintWriter out;
