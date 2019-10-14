@@ -1,6 +1,8 @@
 package com.broker;
 
 import com.fixme.lib.Message;
+import com.fixme.lib.Order;
+import com.fixme.lib.Portfolio;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -15,13 +17,16 @@ public class ClientReader implements Callable {
 
     private Socket client;
 
-    private Message message;
+    private Portfolio portfolio;
 
-    public ClientReader(Socket client) {
+    private Order message;
+
+    public ClientReader(Socket client, Portfolio portfolio) {
         this.client = client;
+        this.portfolio = portfolio;
 
         try {
-            this.client.setSoTimeout(2000);
+            this.client.setSoTimeout(20);
         } catch (SocketException e){
             System.out.println("Cannot set Timeout on this Socket");
         }
@@ -52,7 +57,7 @@ public class ClientReader implements Callable {
             return null;
         }
 
-        this.message = new Message(input, client);
+        this.message = new Order(input, client, portfolio);
 
         System.out.printf("New Message From Client : %S | Recipient : %S | Message %S\n", this.message.getSenderID(), this.message.getRecipientID(), this.message.getMessage());
         return this.message;

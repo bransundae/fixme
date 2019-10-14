@@ -37,7 +37,7 @@ public class Broker {
         writerService.submit(new ClientWriter(socket, "35=A"));
 
         while (id == -1) {
-            ClientReader clientReader = new ClientReader(socket);
+            ClientReader clientReader = new ClientReader(socket, portfolio);
             futureMap.put(readerService.submit(clientReader), clientReader);
 
             Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
@@ -77,7 +77,7 @@ public class Broker {
         Future<Order> inputFuture = null;
         String input = "";
 
-        ExecutorService inputService = Executors.newFixedThreadPool(1);
+        ExecutorService inputService = Executors.newFixedThreadPool(2);
 
         System.out.println("This Broker has been assigned ID : " + id + " for this session");
         System.out.println("This Broker is now trading the following instruments...");
@@ -94,7 +94,7 @@ public class Broker {
                 inputFuture = null;
             }
 
-            ClientReader clientReader = new ClientReader(socket);
+            ClientReader clientReader = new ClientReader(socket, portfolio);
             futureMap.put(readerService.submit(clientReader), clientReader);
 
             Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
@@ -103,7 +103,7 @@ public class Broker {
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null){
                         //Message is not from server and therefore constitutes an order
-                        if (pair.getKey().get().getSenderID() != 500 && pair.getKey().get().getMessage() != null){
+                        if (pair.getKey().get().getSenderID() != 500){
                             //TODO Refactor Message to Parse FIX
                             responseList.add(new Order(pair.getKey().get().getMessage(), pair.getKey().get().getSocket(), portfolio));
                         }
@@ -120,6 +120,7 @@ public class Broker {
             //Business Logic
             for (int i = 0; i < responseList.size(); i++){
                 System.out.println("Response From Router : " + responseList.get(i).toFix());
+                responseList.remove(i);
             }
 
             if (!input.isEmpty()){

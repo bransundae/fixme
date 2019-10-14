@@ -96,7 +96,7 @@ public class Market {
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null){
                         //Message is not from server and therefore constitutes an order
-                        if (pair.getKey().get().getSenderID() != 500 && pair.getKey().get().getMessage() != null){
+                        if (pair.getKey().get().getSenderID() != 500){
                             //TODO Refactor Message to Parse FIX
                             orderList.add(pair.getKey().get());
                         }
@@ -112,16 +112,13 @@ public class Market {
 
             //Business Logic
             for (int i = 0; i < orderList.size(); i++){
-                System.out.println("Orders exist");
                 Order order = orderList.get(i);
                 if (portfolio.getStock(order.getStock().getName()) != null){
-                    System.out.println("Stock exists on market");
                     if (!order.isReady()){
                         //TODO SESSION LEVEL REJECT
                         System.out.println("Order Rejected");
                     }
                     else {
-                        System.out.println("Order processing");
                         if (order.isBuy()) {
                             if (order.getBid() <= portfolio.getStock(order.getStock().getName()).getPrice()) {
                                 //If buyer is offering less than market price then market will search for sellers willing to accept bid
@@ -134,7 +131,6 @@ public class Market {
                             if (order.getBid() >= portfolio.getStock(order.getStock().getName()).getPrice()) {
                                 //If seller is asking for more than market price the market will search for buyers willing to accept the bid}
                             } else {
-                                System.out.println("SALE ACCEPTED");
                                 //If seller is asking for less than market price then the market will buy the stock and resell, keeping the profit
                                 //TODO MARKET PURCHASE STOCKS
                                 order.setRecipientID(order.getSenderID());
