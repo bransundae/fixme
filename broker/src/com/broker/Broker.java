@@ -74,33 +74,28 @@ public class Broker {
         ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
         ArrayList<Order> responseList = new ArrayList<>();
 
-        Future<String> inputFuture = null;
-        String input;
+        Future<Order> inputFuture = null;
+        String input = "";
 
-        ExecutorService executorService = Executors.newFixedThreadPool(3);
+        ExecutorService inputService = Executors.newFixedThreadPool(1);
 
         System.out.println("This Broker has been assigned ID : " + id + " for this session");
         System.out.println("This Broker is now trading the following instruments...");
         System.out.println(portfolio.toString());
 
         while (true){
-            InputReader inputReader = new InputReader();
+            InputReader inputReader = new InputReader(id, portfolio);
 
             if (inputFuture == null || inputFuture.isCancelled()) {
-                inputFuture = executorService.submit(inputReader);
-                try {
-                    input = inputFuture.get(200, TimeUnit.MILLISECONDS);
-                } catch (TimeoutException e) {
-                    System.out.println("Cancelling Input Reading");
-                    inputFuture.cancel(true);
-                }
+                inputFuture = inputService.submit(inputReader);
             }
             else if (inputFuture.isDone()){
-
+                input = inputFuture.get().toFix();
+                inputFuture = null;
             }
 
             ClientReader clientReader = new ClientReader(socket);
-            futureMap.put(executorService.submit(clientReader), clientReader);
+            futureMap.put(readerService.submit(clientReader), clientReader);
 
             Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
@@ -126,34 +121,12 @@ public class Broker {
             for (int i = 0; i < responseList.size(); i++){
                 System.out.println("Response From Router : " + responseList.get(i).toFix());
             }
+
+            if (!input.isEmpty()){
+                socket = new Socket("localhost", 5000);
+                writerService.submit(new ClientWriter(socket, input));
+                input = "";
+            }
         }
-
-        /*BufferedReader in;
-        PrintWriter out;
-
-        while (true) {
-            String input = "";
-            socket = new Socket("localhost", 5000);
-            Scanner user = new Scanner(System.in);
-            System.out.println("Enter Market ID...");
-            input += user.next();
-            System.out.println("Enter your Order...");
-            input += "|"+user.next();
-            out = new PrintWriter(socket.getOutputStream(), true);
-            out.println(id + "|" + input);
-
-            System.out.println("Requesting " + input + " shares from Market...");
-
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
-            int status = Integer.parseInt(in.readLine().split("\\|")[2]);
-
-            if (status == 1)
-                System.out.println("Market : Executed");
-            else if (status == 0)
-                System.out.println("Market : Rejected");
-            else if (status == -1)
-                System.out.println("Router : Market address could not be found");
-        }*/
     }
 }

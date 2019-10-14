@@ -12,13 +12,30 @@ public class Message {
     protected String status;
 
     public Message(String fixMessage, Socket socket){
+        parseFix(fixMessage);
         this.message = fixMessage;
+        this.socket = socket;
+    }
+
+    public Message(int senderID, int recipientID, String type, Socket socket){
+        this.senderID = senderID;
+        this.recipientID = recipientID;
+        this.type = type;
+        this.socket = socket;
+    }
+
+    public Message(){
+
+    }
+
+    public void parseFix(String fixMessage){
         String soh = "" + (char)1;
         String split[] = fixMessage.split(soh);
         for (int i = 0 ; i < split.length; i++){
             String tag[] = split[i].split("=");
             if (tag.length > 1) {
                 switch (tag[0]) {
+                    //MESSAGE TYPE
                     case "35":
                         if (tag[1].equalsIgnoreCase("A")){
                             type = "A";
@@ -31,7 +48,6 @@ public class Message {
                         else{
                             type = "9";
                         }
-                        System.out.println(type);
                         break;
                     //RECIPIENT
                     case "56":
@@ -55,15 +71,6 @@ public class Message {
                 this.message = tag[0];
             }
         }
-        this.message = fixMessage;
-        this.socket = socket;
-    }
-
-    public Message(int senderID, int recipientID, String type, Socket socket){
-        this.senderID = senderID;
-        this.recipientID = recipientID;
-        this.type = type;
-        this.socket = socket;
     }
 
     public Socket getSocket() {
@@ -107,7 +114,7 @@ public class Message {
     }
 
     public String getMessage() {
-        return message;
+        return this.message;
     }
 
     public void setMessage(String message) {
@@ -139,6 +146,12 @@ public class Message {
             if (i > 0)
                 toReturn += soh;
             toReturn += "56="+recipientID;
+        }
+
+        if (status != null){
+            if (i > 0)
+                toReturn += soh;
+            toReturn += "39="+status;
         }
         return toReturn;
     }

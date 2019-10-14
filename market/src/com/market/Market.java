@@ -41,7 +41,7 @@ public class Market {
         writerService.submit(new ClientWriter(socket, "35=A"));
 
         while (id == -1){
-            ClientReader clientReader = new ClientReader(socket);
+            ClientReader clientReader = new ClientReader(socket, portfolio);
             futureMap.put(readerService.submit(clientReader), clientReader);
 
             Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
@@ -76,8 +76,8 @@ public class Market {
     public static void main(String args[]) throws IOException, ExecutionException, InterruptedException {
 
         Socket socket = connect();
-        HashMap<Future<Message>, ClientReader> futureMap = new HashMap<>();
-        ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
+        HashMap<Future<Order>, ClientReader> futureMap = new HashMap<>();
+        ArrayList<Future<Order>> deadFutureList = new ArrayList<>();
         ArrayList<Order> orderList = new ArrayList<>();
 
         ExecutorService executorService = Executors.newFixedThreadPool(2);
@@ -87,50 +87,63 @@ public class Market {
         System.out.println(portfolio.toString());
 
         while (true){
-            ClientReader clientReader = new ClientReader(socket);
+            ClientReader clientReader = new ClientReader(socket, portfolio);
             futureMap.put(executorService.submit(clientReader), clientReader);
 
-            Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
+            Iterator<Map.Entry<Future<Order>, ClientReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
-                Map.Entry<Future<Message>, ClientReader> pair = it.next();
+                Map.Entry<Future<Order>, ClientReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null){
                         //Message is not from server and therefore constitutes an order
                         if (pair.getKey().get().getSenderID() != 500 && pair.getKey().get().getMessage() != null){
                             //TODO Refactor Message to Parse FIX
-                            orderList.add(new Order(pair.getKey().get().getMessage(), pair.getKey().get().getSocket(), portfolio));
+                            orderList.add(pair.getKey().get());
                         }
                     }
                     deadFutureList.add(pair.getKey());
                 }
             }
 
-            for (Future<Message> f : deadFutureList)
+            for (Future<Order> f : deadFutureList)
                 futureMap.remove(f);
             if (!deadFutureList.isEmpty())
                 deadFutureList.clear();
 
             //Business Logic
             for (int i = 0; i < orderList.size(); i++){
+                System.out.println("Orders exist");
                 Order order = orderList.get(i);
                 if (portfolio.getStock(order.getStock().getName()) != null){
-                    if (order.isBuy()){
-                        if (order.getBid() <= portfolio.getStock(order.getStock().getName()).getPrice()){
-                            //TODO MARKET WILL SEARCH FOR BROKERS THAT WILL ACCEPT THE BID
-
-                        }
-                        else {
-                            //TODO MARKET WILL SELL STOCKS
-                        }
+                    System.out.println("Stock exists on market");
+                    if (!order.isReady()){
+                        //TODO SESSION LEVEL REJECT
+                        System.out.println("Order Rejected");
                     }
                     else {
-                        if (order.getBid() >= portfolio.getStock(order.getStock().getName()).getPrice()){
+                        System.out.println("Order processing");
+                        if (order.isBuy()) {
+                            if (order.getBid() <= portfolio.getStock(order.getStock().getName()).getPrice()) {
+                                //If buyer is offering less than market price then market will search for sellers willing to accept bid
+                                //TODO MARKET WILL SEARCH FOR BROKERS THAT WILL ACCEPT THE BID
 
-                        }
-                        else {
-                            //TODO MARKET PURCHASE STOCKS
-                            order.setStatus("8");
-                            writerService.submit(new ClientWriter(socket, order.toFix()));
+                            } else {
+                                //TODO MARKET WILL SELL STOCKS
+                            }
+                        } else {
+                            if (order.getBid() >= portfolio.getStock(order.getStock().getName()).getPrice()) {
+                                //If seller is asking for more than market price the market will search for buyers willing to accept the bid}
+                            } else {
+                                System.out.println("SALE ACCEPTED");
+                                //If seller is asking for less than market price then the market will buy the stock and resell, keeping the profit
+                                //TODO MARKET PURCHASE STOCKS
+                                order.setRecipientID(order.getSenderID());
+                                order.setSenderID(id);
+                                order.setStatus("2");
+                                socket = new Socket("localhost", 5001);
+                                writerService.submit(new ClientWriter(socket, order.toFix()));
+                                orderList.remove(order);
+                            }
                         }
                     }
                 }

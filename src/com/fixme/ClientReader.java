@@ -76,7 +76,7 @@ public class ClientReader implements Callable {
             message.setSenderID(Router.clientID);
         }
 
-        System.out.printf("New Message From Router : %S | Recipient : %S | Message %S\n", message.getSenderID(), message.getRecipientID(), this.message.getMessage());
+        System.out.printf("New Message From Client : %S | Recipient : %S | Message %S\n", message.getSenderID(), message.getRecipientID(), this.message.getMessage());
         return this.message;
     }
 }

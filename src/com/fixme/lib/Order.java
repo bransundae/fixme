@@ -6,12 +6,26 @@ import java.net.Socket;
 public class Order extends Message{
 
     private Stock stock;
-    private double quantity;
+    private int quantity = -1;
     private boolean buy;
-    private double bid;
+    private double bid = -1;
+    private Portfolio portfolio;
 
     public Order(String fixMessage, Socket socket, Portfolio portfolio){
         super(fixMessage, socket);
+        this.portfolio = portfolio;
+        parseFix(fixMessage);
+
+    }
+
+    public Order(Portfolio portfolio){
+        super();
+        this.portfolio = portfolio;
+    }
+
+    @Override
+    public void parseFix(String fixMessage) {
+        super.parseFix(fixMessage);
         String soh = "" + (char)1;
         String split[] = fixMessage.split(soh);
         for (int i = 0 ; i < split.length; i++){
@@ -28,13 +42,14 @@ public class Order extends Message{
 
                     //STOCK
                     case "55":
-                        stock = portfolio.getStock(tag[1]);
+                        if (portfolio != null)
+                            stock = this.portfolio.getStock(tag[1]);
                         break;
 
-                        //QUANTITY
+                    //QUANTITY
                     case "38":
                         try {
-                            quantity = Double.parseDouble(tag[1]);
+                            quantity = Integer.parseInt(tag[1]);
                         } catch (NumberFormatException e){
                             System.out.println("FIX ERROR");
                         }
@@ -49,7 +64,7 @@ public class Order extends Message{
                         }
                         break;
 
-                        //ORDER COMPLETION
+                    //ORDER COMPLETION
                     case "39":
                         status = tag[1];
                         break;
@@ -62,7 +77,7 @@ public class Order extends Message{
         return stock;
     }
 
-    public double getQuantity() {
+    public int getQuantity() {
         return quantity;
     }
 
@@ -74,7 +89,7 @@ public class Order extends Message{
         this.stock = stock;
     }
 
-    public void setQuantity(double quantity) {
+    public void setQuantity(int quantity) {
         this.quantity = quantity;
     }
 
@@ -90,9 +105,36 @@ public class Order extends Message{
         this.buy = buy;
     }
 
+    public boolean isReady(){
+        return this.type != null && this.recipientID != -1 && this.senderID != -1 && stock != null && this.quantity != -1 && this.bid != -1;
+    }
+
     @Override
     public String toFix() {
         String soh = "" + (char)1;
-        return "39=" + status + soh + super.toFix();
+        String toReturn = "";
+        int i = 0;
+
+        if (stock != null){
+            toReturn += "55="+stock.getName();
+            i++;
+        }
+
+        if (quantity != -1){
+            if (i == 1)
+                toReturn += soh;
+            toReturn += "38="+quantity;
+        }
+
+        if (bid != -1){
+            if (i > 0)
+                toReturn += soh;
+            toReturn += "44="+bid;
+        }
+
+        if (buy)
+            return super.toFix() + soh + toReturn + soh + "54=1";
+        else
+            return super.toFix() + soh + toReturn + soh + "54=2";
     }
 }

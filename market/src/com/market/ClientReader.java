@@ -1,7 +1,10 @@
 package com.market;
 
 import com.fixme.lib.Message;
+import com.fixme.lib.Order;
+import com.fixme.lib.Portfolio;
 
+import javax.sound.sampled.Port;
 import java.awt.*;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,11 +19,12 @@ import java.util.concurrent.Callable;
 public class ClientReader implements Callable {
 
     private Socket client;
+    private Portfolio portfolio;
+    private Order order;
 
-    private Message message;
-
-    public ClientReader(Socket client) {
+    public ClientReader(Socket client, Portfolio portfolio) {
         this.client = client;
+        this.portfolio = portfolio;
 
         try {
             this.client.setSoTimeout(2000);
@@ -54,9 +58,9 @@ public class ClientReader implements Callable {
             return null;
         }
 
-        this.message = new Message(input, client);
+        this.order = new Order(input, this.client, this.portfolio);
 
-        System.out.printf("New Message From Router : %S | Recipient : %S | Message %S\n", this.message.getSenderID(), this.message.getRecipientID(), this.message.getMessage());
-        return this.message;
+        System.out.printf("New Message From Router : %S | Recipient : %S | Message %S\n", this.order.getSenderID(), this.order.getRecipientID(), input);
+        return this.order;
     }
 }
