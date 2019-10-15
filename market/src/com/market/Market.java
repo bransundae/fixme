@@ -21,8 +21,8 @@ public class Market {
     private static int id = -1;
     private static Socket socket;
 
-    private static ExecutorService readerService = Executors.newFixedThreadPool(2);
-    private static ExecutorService writerService = Executors.newFixedThreadPool(2);
+    private static ExecutorService readerService = Executors.newCachedThreadPool();
+    private static ExecutorService writerService = Executors.newCachedThreadPool();
 
     public static Portfolio portfolio = new Portfolio(
             new Stock("FIAT", 1.0, 1000000),
@@ -133,9 +133,11 @@ public class Market {
                             } else {
                                 //If seller is asking for less than market price then the market will buy the stock and resell, keeping the profit
                                 //TODO MARKET PURCHASE STOCKS
+                                System.out.println("Business logic triggered");
                                 order.setRecipientID(order.getSenderID());
                                 order.setSenderID(id);
                                 order.setStatus("2");
+                                System.out.println("Business Logic: " + order.toFix());
                                 socket = new Socket("localhost", 5001);
                                 writerService.submit(new ClientWriter(socket, order.toFix()));
                                 orderList.remove(order);

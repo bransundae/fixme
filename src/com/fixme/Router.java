@@ -20,6 +20,15 @@ public class Router {
     private static ClientReader marketReader;
     private static ClientReader brokerReader;
 
+    private static Map<Integer, Socket> clientMap = new HashMap<>();
+    private static Map<Future<Message>, ClientReader> futureMap = new HashMap<>();
+
+    private static ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
+    private static ArrayList<Message> jobList = new ArrayList<>();
+
+    private static ExecutorService readerService = Executors.newCachedThreadPool();
+    private static ExecutorService writerService = Executors.newCachedThreadPool();
+
     public static int clientID = 100000;
 
 
@@ -33,20 +42,32 @@ public class Router {
         marketReader = new ClientReader(market);
     }
 
+    private static void heartBeat() {
+
+        Iterator<Map.Entry<Integer, Socket>> it = clientMap.entrySet().iterator();
+
+        while (it.hasNext()){
+            Map.Entry<Integer, Socket> pair = it.next();
+            Message message = new Message(500, pair.getKey(), "0", pair.getValue());
+            message.setMessage(message.toFix());
+            writerService.submit(new ClientWriter(pair.getValue(), message));
+        }
+    }
+
+
     public static void main(String args[]) throws Exception {
 
-        Map<Integer, Socket> clientMap = new HashMap<>();
-        Map<Future<Message>, ClientReader> futureMap = new HashMap<>();
-
-        ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
-        ArrayList<Message> jobList = new ArrayList<>();
-
-        ExecutorService readerService = Executors.newFixedThreadPool(2);
-        ExecutorService writerService = Executors.newFixedThreadPool(2);
+        long startTime = System.currentTimeMillis();
 
         listenSocket();
 
         while (true){
+
+            if (System.currentTimeMillis() - startTime > 2000) {
+                heartBeat();
+                startTime = System.currentTimeMillis();
+            }
+
             ClientReader brokerReader = new ClientReader(broker);
             ClientReader marketReader = new ClientReader(market);
 

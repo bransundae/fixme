@@ -17,8 +17,8 @@ public class Broker {
 
     private static int id = -1;
     private static Socket socket;
-    private static ExecutorService readerService = Executors.newFixedThreadPool(2);
-    private static ExecutorService writerService = Executors.newFixedThreadPool(2);
+    private static ExecutorService readerService = Executors.newCachedThreadPool();
+    private static ExecutorService writerService = Executors.newCachedThreadPool();
 
     public static Portfolio portfolio = new Portfolio(
             new Stock("FIAT", 1.0, 10),
@@ -83,8 +83,13 @@ public class Broker {
         System.out.println("This Broker is now trading the following instruments...");
         System.out.println(portfolio.toString());
 
+        String soh = "" + (char)1;
+
+        input = "35=D" + soh + "115=" + id + soh + "56=100001" + soh + "55=ASTOCK" + soh + "38=30" +
+                soh + "44=2.0" + soh + "54=2";
+
         while (true){
-            InputReader inputReader = new InputReader(id, portfolio);
+            /*InputReader inputReader = new InputReader(id, portfolio);
 
             if (inputFuture == null || inputFuture.isCancelled()) {
                 inputFuture = inputService.submit(inputReader);
@@ -92,7 +97,7 @@ public class Broker {
             else if (inputFuture.isDone()){
                 input = inputFuture.get().toFix();
                 inputFuture = null;
-            }
+            }*/
 
             ClientReader clientReader = new ClientReader(socket, portfolio);
             futureMap.put(readerService.submit(clientReader), clientReader);
@@ -126,6 +131,8 @@ public class Broker {
             if (!input.isEmpty()){
                 socket = new Socket("localhost", 5000);
                 writerService.submit(new ClientWriter(socket, input));
+                clientReader = new ClientReader(socket, portfolio);
+                futureMap.put(readerService.submit(clientReader), clientReader);
                 input = "";
             }
         }

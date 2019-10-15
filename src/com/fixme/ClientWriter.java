@@ -18,11 +18,6 @@ public class ClientWriter implements Callable {
         this.message = message;
     }
 
-    public ClientWriter(PrintWriter out, Message message){
-        this.out = out;
-        this.message = message;
-    }
-
     public Socket getClient() {
         return client;
     }

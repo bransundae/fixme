@@ -27,7 +27,7 @@ public class ClientReader implements Callable {
         this.portfolio = portfolio;
 
         try {
-            this.client.setSoTimeout(20);
+            this.client.setSoTimeout(200);
         } catch (SocketException e){
             System.out.println("Cannot set Timeout on this Socket");
         }
@@ -60,7 +60,7 @@ public class ClientReader implements Callable {
 
         this.order = new Order(input, this.client, this.portfolio);
 
-        System.out.printf("New Message From Router : %S | Recipient : %S | Message %S\n", this.order.getSenderID(), this.order.getRecipientID(), input);
+        System.out.printf("New Message From Router : %S | Recipient : %S | Message %S\n", this.order.getSenderID(), this.order.getRecipientID(), order.toFix());
         return this.order;
     }
 }
