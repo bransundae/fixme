@@ -17,8 +17,7 @@ public class Broker {
 
     private static int id = -1;
     private static Socket socket;
-    private static ExecutorService readerService = Executors.newCachedThreadPool();
-    private static ExecutorService writerService = Executors.newCachedThreadPool();
+    private static ExecutorService executorService = Executors.newCachedThreadPool();
 
     public static Portfolio portfolio = new Portfolio(
             new Stock("FIAT", 1.0, 10),
@@ -31,20 +30,20 @@ public class Broker {
         HashMap<Future<Message>, ClientReader> futureMap = new HashMap<>();
         ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
 
-        //Create a new Socket and send registration request to router
+        //Create new Socket and send connection request to router on separate Thread
         socket = new Socket("localhost", 5000);
 
-        writerService.submit(new ClientWriter(socket, "35=A"));
+        ClientReader clientReader = new ClientReader(socket, portfolio);
+        futureMap.put(executorService.submit(clientReader), clientReader);
 
-        while (id == -1) {
-            ClientReader clientReader = new ClientReader(socket, portfolio);
-            futureMap.put(readerService.submit(clientReader), clientReader);
+        executorService.submit(new ClientWriter(socket, "35=A"));
 
+        while (id == -1){
             Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
-            while (it.hasNext()) {
+            while (it.hasNext()){
                 Map.Entry<Future<Message>, ClientReader> pair = it.next();
-                if (pair.getKey().isDone()) {
-                    if (pair.getKey() != null) {
+                if (pair.getKey().isDone()){
+                    if (pair.getKey() != null){
                         if (pair.getKey().get() != null) {
                             if (pair.getKey().get().getSenderID() == 500 && pair.getKey().get().getMessage() != null) {
                                 try {
@@ -60,11 +59,14 @@ public class Broker {
                 }
             }
 
-            for (Future<Message> f : deadFutureList)
+            for (Future<Message> f : deadFutureList) {
+                futureMap.put(executorService.submit(clientReader), clientReader);
                 futureMap.remove(f);
+            }
             if (!futureMap.isEmpty())
                 deadFutureList.clear();
         }
+
         return socket;
     }
 
@@ -74,10 +76,10 @@ public class Broker {
         ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
         ArrayList<Order> responseList = new ArrayList<>();
 
-        Future<Order> inputFuture = null;
-        String input = "";
+        ClientReader clientReader = new ClientReader(socket, portfolio);
+        futureMap.put(executorService.submit(clientReader), clientReader);
 
-        ExecutorService inputService = Executors.newFixedThreadPool(2);
+        String input = "";
 
         System.out.println("This Broker has been assigned ID : " + id + " for this session");
         System.out.println("This Broker is now trading the following instruments...");
@@ -99,9 +101,6 @@ public class Broker {
                 inputFuture = null;
             }*/
 
-            ClientReader clientReader = new ClientReader(socket, portfolio);
-            futureMap.put(readerService.submit(clientReader), clientReader);
-
             Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
                 Map.Entry<Future<Message>, ClientReader> pair = it.next();
@@ -117,8 +116,11 @@ public class Broker {
                 }
             }
 
-            for (Future<Message> f : deadFutureList)
+            for (Future<Message> f : deadFutureList) {
+                clientReader = new ClientReader(socket, portfolio);
+                futureMap.put(executorService.submit(clientReader), clientReader);
                 futureMap.remove(f);
+            }
             if (!deadFutureList.isEmpty())
                 deadFutureList.clear();
 
@@ -130,9 +132,7 @@ public class Broker {
 
             if (!input.isEmpty()){
                 socket = new Socket("localhost", 5000);
-                writerService.submit(new ClientWriter(socket, input));
-                clientReader = new ClientReader(socket, portfolio);
-                futureMap.put(readerService.submit(clientReader), clientReader);
+                executorService.submit(new ClientWriter(socket, input));
                 input = "";
             }
         }

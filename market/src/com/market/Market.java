@@ -21,8 +21,7 @@ public class Market {
     private static int id = -1;
     private static Socket socket;
 
-    private static ExecutorService readerService = Executors.newCachedThreadPool();
-    private static ExecutorService writerService = Executors.newCachedThreadPool();
+    private static ExecutorService executorService = Executors.newCachedThreadPool();
 
     public static Portfolio portfolio = new Portfolio(
             new Stock("FIAT", 1.0, 1000000),
@@ -32,21 +31,21 @@ public class Market {
 
     private static Socket connect() throws IOException, ExecutionException, InterruptedException {
 
-        HashMap<Future<Message>, ClientReader> futureMap = new HashMap<>();
-        ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
+        HashMap<Future<Order>, ClientReader> futureMap = new HashMap<>();
+        ArrayList<Future<Order>> deadFutureList = new ArrayList<>();
 
         //Create new Socket and send connection request to router on separate Thread
         socket = new Socket("localhost", 5001);
 
-        writerService.submit(new ClientWriter(socket, "35=A"));
+        ClientReader clientReader = new ClientReader(socket, portfolio);
+        futureMap.put(executorService.submit(clientReader), clientReader);
+
+        executorService.submit(new ClientWriter(socket, "35=A"));
 
         while (id == -1){
-            ClientReader clientReader = new ClientReader(socket, portfolio);
-            futureMap.put(readerService.submit(clientReader), clientReader);
-
-            Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
+            Iterator<Map.Entry<Future<Order>, ClientReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
-                Map.Entry<Future<Message>, ClientReader> pair = it.next();
+                Map.Entry<Future<Order>, ClientReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey() != null){
                         if (pair.getKey().get() != null) {
@@ -64,8 +63,10 @@ public class Market {
                 }
             }
 
-            for (Future<Message> f : deadFutureList)
+            for (Future<Order> f : deadFutureList) {
+                futureMap.put(executorService.submit(clientReader), clientReader);
                 futureMap.remove(f);
+            }
             if (!futureMap.isEmpty())
                 deadFutureList.clear();
         }
@@ -80,16 +81,14 @@ public class Market {
         ArrayList<Future<Order>> deadFutureList = new ArrayList<>();
         ArrayList<Order> orderList = new ArrayList<>();
 
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        ClientReader clientReader = new ClientReader(socket, portfolio);
+        futureMap.put(executorService.submit(clientReader), clientReader);
 
         System.out.println("This Market has been assigned ID : " + id + " for this session");
         System.out.println("This Market is now trading the following instruments...");
         System.out.println(portfolio.toString());
 
         while (true){
-            ClientReader clientReader = new ClientReader(socket, portfolio);
-            futureMap.put(executorService.submit(clientReader), clientReader);
-
             Iterator<Map.Entry<Future<Order>, ClientReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
                 Map.Entry<Future<Order>, ClientReader> pair = it.next();
@@ -105,8 +104,11 @@ public class Market {
                 }
             }
 
-            for (Future<Order> f : deadFutureList)
+            for (Future<Order> f : deadFutureList) {
+                clientReader = new ClientReader(socket, portfolio);
+                futureMap.put(executorService.submit(clientReader), clientReader);
                 futureMap.remove(f);
+            }
             if (!deadFutureList.isEmpty())
                 deadFutureList.clear();
 
@@ -133,13 +135,11 @@ public class Market {
                             } else {
                                 //If seller is asking for less than market price then the market will buy the stock and resell, keeping the profit
                                 //TODO MARKET PURCHASE STOCKS
-                                System.out.println("Business logic triggered");
                                 order.setRecipientID(order.getSenderID());
                                 order.setSenderID(id);
                                 order.setStatus("2");
-                                System.out.println("Business Logic: " + order.toFix());
                                 socket = new Socket("localhost", 5001);
-                                writerService.submit(new ClientWriter(socket, order.toFix()));
+                                executorService.submit(new ClientWriter(socket, order.toFix()));
                                 orderList.remove(order);
                             }
                         }

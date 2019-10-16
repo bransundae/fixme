@@ -27,7 +27,7 @@ public class ClientReader implements Callable {
         this.portfolio = portfolio;
 
         try {
-            this.client.setSoTimeout(200);
+            this.client.setSoTimeout(2000);
         } catch (SocketException e){
             System.out.println("Cannot set Timeout on this Socket");
         }
@@ -41,7 +41,6 @@ public class ClientReader implements Callable {
     public Object call() throws Exception {
         String input = "";
         BufferedReader in = null;
-        PrintWriter out = null;
 
         //Blocking Socket call
         try {

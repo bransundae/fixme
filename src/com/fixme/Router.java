@@ -26,8 +26,7 @@ public class Router {
     private static ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
     private static ArrayList<Message> jobList = new ArrayList<>();
 
-    private static ExecutorService readerService = Executors.newCachedThreadPool();
-    private static ExecutorService writerService = Executors.newCachedThreadPool();
+    private static ExecutorService executorService = Executors.newCachedThreadPool();
 
     public static int clientID = 100000;
 
@@ -50,35 +49,24 @@ public class Router {
             Map.Entry<Integer, Socket> pair = it.next();
             Message message = new Message(500, pair.getKey(), "0", pair.getValue());
             message.setMessage(message.toFix());
-            writerService.submit(new ClientWriter(pair.getValue(), message));
+            executorService.submit(new ClientWriter(pair.getValue(), message));
         }
     }
 
 
     public static void main(String args[]) throws Exception {
 
-        long startTime = System.currentTimeMillis();
-
         listenSocket();
 
+        futureMap.put(executorService.submit(brokerReader), brokerReader);
+        futureMap.put(executorService.submit(marketReader), marketReader);
+
         while (true){
-
-            if (System.currentTimeMillis() - startTime > 2000) {
-                heartBeat();
-                startTime = System.currentTimeMillis();
-            }
-
-            ClientReader brokerReader = new ClientReader(broker);
-            ClientReader marketReader = new ClientReader(market);
-
-            futureMap.put(readerService.submit(brokerReader), brokerReader);
-            futureMap.put(readerService.submit(marketReader), marketReader);
-
             //Iterate through the futureMap and if a Callable has returned a completed Future then add the message to the job queue and remove the future - ClientReader pair
             //If the sender of the message is not registered then store the socket from the ClientReader first
             Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
-                Map.Entry<Future<Message>, ClientReader> pair = (Map.Entry<Future<Message>, ClientReader>)it.next();
+                Map.Entry<Future<Message>, ClientReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null) {
                         if (pair.getKey().get().getType().equalsIgnoreCase("A")) {
@@ -98,18 +86,23 @@ public class Router {
 
             //Clean the completed futures from the futureMap
             for (Future<Message> f : deadFutureList){
+                if (futureMap.get(f).getPort() == 5000)
+                    futureMap.put(executorService.submit(brokerReader), brokerReader);
+                else if (futureMap.get(f).getPort() == 5001)
+                    futureMap.put(executorService.submit(marketReader), marketReader);
                 futureMap.remove(f);
             }
+
             if (!deadFutureList.isEmpty())
                 deadFutureList.clear();
 
             for (int i = 0; i < jobList.size(); i++){
                 if (clientMap.get(jobList.get(i).getRecipientID()) != null)
-                    writerService.submit(new ClientWriter(clientMap.get(jobList.get(i).getRecipientID()), jobList.get(i)));
+                    executorService.submit(new ClientWriter(clientMap.get(jobList.get(i).getRecipientID()), jobList.get(i)));
                 else {
                     Message message = new Message(500, jobList.get(i).getSenderID(), "0", clientMap.get(jobList.get(i).getSenderID()));
                     message.setMessage(message.toFix());
-                    writerService.submit(new ClientWriter(clientMap.get(jobList.get(i).getSenderID()), message));
+                    executorService.submit(new ClientWriter(clientMap.get(jobList.get(i).getSenderID()), message));
                 }
                 jobList.remove(jobList.get(i));
             }
