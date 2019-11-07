@@ -1,6 +1,6 @@
-package com.fixme;
+package com.router;
 
-import com.fixme.lib.Message;
+import com.core.Message;
 
 import java.io.BufferedReader;
 import java.io.IOException;

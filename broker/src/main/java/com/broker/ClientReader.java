@@ -1,8 +1,8 @@
 package com.broker;
 
-import com.fixme.lib.Message;
-import com.fixme.lib.Order;
-import com.fixme.lib.Portfolio;
+import com.core.Message;
+import com.core.Order;
+import com.core.Portfolio;
 
 import java.io.BufferedReader;
 import java.io.IOException;
