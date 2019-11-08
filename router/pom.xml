@@ -6,7 +6,6 @@
 <parent>
 	<groupId>com.fixme</groupId>
     <artifactId>fixme</artifactId>
-    <packaging>pom</packaging>
 	<version>1.0</version>
 </parent>
     <groupId>com.router</groupId>
@@ -18,16 +17,26 @@
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
     <dependencies> 
-    <dependency> 
+    <dependency>   
         <groupId>org.hibernate</groupId>
         <artifactId>hibernate-validator</artifactId>
-        <version>6.0.13.Final</version>
+        <version>6.0.13.Final</version>   
     </dependency> 
     <dependency> 
         <groupId>org.glassfish</groupId>
         <artifactId>javax.el</artifactId>
         <version>3.0.0</version>
-     </dependency>
+    </dependency>
+    <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+            <version>4.1.10.Final</version>
+    </dependency>
+     <dependency>
+            <groupId>com.core</groupId>
+            <artifactId>core</artifactId>
+            <version>1.0</version>
+    </dependency>
 </dependencies>
     <build>
         <plugins>

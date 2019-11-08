@@ -6,7 +6,7 @@
 
 
     <groupId>com.fixme</groupId>
-    <artifactId>fixme</artifactId>
+    <artifactId>fixme</artifactId>   
     <packaging>pom</packaging>
 	<version>1.0</version>
 
@@ -14,5 +14,10 @@
         <module>router</module>
         <module>market</module>
         <module>broker</module>
+        <module>core</module>
     </modules>
+     <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
 </project>
