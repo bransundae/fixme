@@ -1,4 +1,4 @@
-
+package com.broker;
 
 import com.broker.ClientReader;
 import com.broker.ClientWriter;
@@ -83,8 +83,8 @@ public class Broker {
 
         String input = "";
 
-        System.out.println("This Broker has been assigned ID : " + id + " for this session");
-        System.out.println("This Broker is now trading the following instruments...");
+        System.out.println("This com.broker.Broker has been assigned ID : " + id + " for this session");
+        System.out.println("This com.broker.Broker is now trading the following instruments...");
         System.out.println(portfolio.toString());
 
         String soh = "" + (char)1;

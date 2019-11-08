@@ -1,1 +1,1 @@
-java -cp build com.broker.Broker
+java -cp build com.broker.com.broker.Broker
