@@ -16,17 +16,18 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
-    <dependencies> 
-     <dependency>
-		<groupId>com.router</groupId>
-        <artifactId>router</artifactId>
-        <version>1.0-SNAPSHOT</version>
-	</dependency>
+    <dependencies>   
+   
       <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
             <version>4.1.10.Final</version>
         </dependency>
+         <dependency>
+            <groupId>com.fixme</groupId>
+            <artifactId>core</artifactId>
+            <version>1.0</version>
+    </dependency>
 </dependencies>
     <build>
         <plugins>
