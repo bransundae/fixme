@@ -1,4 +1,4 @@
-package com.fixme.lib;
+package com.core;
 
 public class Stock {
 

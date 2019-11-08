@@ -1,4 +1,4 @@
-package com.fixme.lib;
+package com.core;
 
 import java.io.IOException;
 import java.net.Socket;

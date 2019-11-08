@@ -1,8 +1,8 @@
-package com.fixme.lib;
+package com.core;
 
 import java.util.ArrayList;
 
-public class Portfolio {
+public class Portfolio {  
 
     private ArrayList<Stock> portfolio;
 
