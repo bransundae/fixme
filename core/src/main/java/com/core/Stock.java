@@ -1,10 +1,15 @@
 package com.core;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+
 public class Stock {
 
     private String name;
     private int hold;
     private double price;
+    private HashMap<Integer, ArrayList<Double>> averageMap = new HashMap<>();
 
     public Stock(String name, Double price, int hold){
         this.name = name;
@@ -26,6 +31,33 @@ public class Stock {
 
     public void setPrice(double price) {
         this.price = price;
+    }
+
+    public void recordPrice(int period){
+        averageMap.get(period).add(this.price);
+    }
+
+    public void newPeriod(int period){
+        if (averageMap.get(period) != null){
+            for (int i = 0; i < averageMap.size(); i++){
+                averageMap.replace(i + 1, averageMap.get(i + 2));
+            }
+            averageMap.replace(averageMap.size(), new ArrayList<>());
+        }
+        else {
+            averageMap.put(period, new ArrayList<>());
+        }
+        recordPrice(period);
+    }
+
+    public double getSMA() {
+        double SMA = 0;
+        for (int i = 0; i < averageMap.size(); i++){
+            for (double price : averageMap.get(i + 1)){
+                SMA += price;
+            }
+        }
+        return (SMA / averageMap.size());
     }
 
     @Override

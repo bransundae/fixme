@@ -93,15 +93,6 @@ public class Broker {
                 soh + "44=2.0" + soh + "54=2";
 
         while (true){
-            /*InputReader inputReader = new InputReader(id, portfolio);
-
-            if (inputFuture == null || inputFuture.isCancelled()) {
-                inputFuture = inputService.submit(inputReader);
-            }
-            else if (inputFuture.isDone()){
-                input = inputFuture.get().toFix();
-                inputFuture = null;
-            }*/
 
             Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
