@@ -37,7 +37,7 @@ public class Stock {
         averageMap.get(period).add(this.price);
     }
 
-    public void newPeriod(int period){
+    public void newSMAPeriod(int period){
         if (averageMap.get(period) != null){
             for (int i = 0; i < averageMap.size(); i++){
                 averageMap.replace(i + 1, averageMap.get(i + 2));
@@ -62,6 +62,15 @@ public class Stock {
 
     @Override
     public String toString() {
-        return "Stock : " + name + "\nHold : " + hold + "\nPrice : " + price;
+        return "Stock : " + name + "\nHold : " + hold + "\nPrice : " + price + "868=";
+    }
+
+    public String toFix(){
+        String soh = "" + (char)1;
+
+        return "55=" + name + soh
+                + "38=" + hold + soh
+                + "44=" + price + soh
+                + "868=" + getSMA();
     }
 }

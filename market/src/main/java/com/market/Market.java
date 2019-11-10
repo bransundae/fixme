@@ -1,16 +1,10 @@
 package com.market;
 
-import com.core.Message;
-import com.core.Order;
-import com.core.Portfolio;
-import com.core.Stock;
+import com.core.*;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -20,6 +14,7 @@ public class Market {
 
     private static int id = -1;
     private static Socket socket;
+    private static int SMAPeriod = 1;
 
     private static ExecutorService executorService = Executors.newCachedThreadPool();
 
@@ -74,6 +69,33 @@ public class Market {
         return socket;
     }
 
+    private static void MarketReopen(int SMALimit){
+        Timer timer = new Timer();
+        System.out.println("Timer Init");
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                MarketSnapshot marketSnapshot = new MarketSnapshot(id, 500, "W", null, new ArrayList<String>());
+
+                for(Stock stock : portfolio.getPortfolio()){
+                    stock.newSMAPeriod(SMAPeriod);
+                    System.out.printf("STOCK: %S | SMA: %f\n", stock.getName(), stock.getSMA());
+                    marketSnapshot.addStock(stock.toFix());
+                }
+                try {
+                    socket = new Socket("localhost", 5001);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                executorService.submit(new ClientWriter(socket, marketSnapshot.toFix()));
+                SMAPeriod++;
+                if (SMAPeriod > SMALimit){
+                    SMAPeriod = 1;
+                }
+            }
+        }, 0, 60000);
+    }
+
     public static void main(String args[]) throws IOException, ExecutionException, InterruptedException {
 
         Socket socket = connect();
@@ -87,6 +109,8 @@ public class Market {
         System.out.println("This Market has been assigned ID : " + id + " for this session");
         System.out.println("This Market is now trading the following instruments...");
         System.out.println(portfolio.toString());
+
+        MarketReopen(5);
 
         while (true){
             Iterator<Map.Entry<Future<Order>, ClientReader>> it = futureMap.entrySet().iterator();
