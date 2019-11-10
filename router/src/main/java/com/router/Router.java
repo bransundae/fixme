@@ -91,7 +91,7 @@ public class Router {
                                 Iterator<Map.Entry<Integer, MarketSnapshot>> iterator = marketSnapshotMap.entrySet().iterator();
                                 while (iterator.hasNext()){
                                     Map.Entry<Integer, MarketSnapshot> itPair = iterator.next();
-                                    toSend.add((Message) new MarketSnapshot(500, pair.getKey().get().getSenderID(), "W", null, itPair.getValue().getStockSnapshots()));
+                                    toSend.add((Message) new MarketSnapshot(itPair.getKey(), pair.getKey().get().getSenderID(), "W", null, itPair.getValue().getStockSnapshots()));
                                 }
                             }
                             else {

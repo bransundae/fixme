@@ -69,6 +69,17 @@ public class Market {
         return socket;
     }
 
+    private static void randomizeStock(){
+
+        Double fluc[] = {.3, -.3};
+
+        int random = (int)(Math.random() * ((1 - 0) + 1)) + 0;
+
+        for (Stock stock : portfolio.getPortfolio()){
+            stock.setPrice(stock.getPrice() + fluc[random]);
+        }
+    }
+
     private static void MarketReopen(int SMALimit){
         Timer timer = new Timer();
         System.out.println("Timer Init");
@@ -79,7 +90,6 @@ public class Market {
 
                 for(Stock stock : portfolio.getPortfolio()){
                     stock.newSMAPeriod(SMAPeriod);
-                    System.out.printf("STOCK: %S | SMA: %f\n", stock.getName(), stock.getSMA());
                     marketSnapshot.addStock(stock.toFix());
                 }
                 try {
@@ -111,6 +121,7 @@ public class Market {
         System.out.println(portfolio.toString());
 
         MarketReopen(5);
+        randomizeStock();
 
         while (true){
             Iterator<Map.Entry<Future<Order>, ClientReader>> it = futureMap.entrySet().iterator();

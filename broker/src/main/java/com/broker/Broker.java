@@ -2,10 +2,7 @@ package com.broker;
 
 import com.broker.ClientReader;
 import com.broker.ClientWriter;
-import com.core.Message;
-import com.core.Order;
-import com.core.Portfolio;
-import com.core.Stock;
+import com.core.*;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -72,6 +69,23 @@ public class Broker {
         return socket;
     }
 
+    private static void RequestMarketData(){
+        Timer timer = new Timer();
+        System.out.println("Timer Init");
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                Message message = new Message(id, 500, "V", null);
+                try {
+                    socket = new Socket("localhost", 5001);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                executorService.submit(new ClientWriter(socket, message.toFix()));
+            }
+        }, 0, 5*60000);
+    }
+
     public static void main(String args[]) throws IOException, ExecutionException, InterruptedException {
         Socket socket = connect();
         HashMap<Future<Message>, ClientReader> futureMap = new HashMap<>();
@@ -81,19 +95,13 @@ public class Broker {
         ClientReader clientReader = new ClientReader(socket, portfolio);
         futureMap.put(executorService.submit(clientReader), clientReader);
 
-        String input = "";
-
         System.out.println("This com.broker.Broker has been assigned ID : " + id + " for this session");
         System.out.println("This com.broker.Broker is now trading the following instruments...");
         System.out.println(portfolio.toString());
 
-        String soh = "" + (char)1;
-
-        input = "35=D" + soh + "115=" + id + soh + "56=100001" + soh + "55=ASTOCK" + soh + "38=30" +
-                soh + "44=2.0" + soh + "54=2";
+        RequestMarketData();
 
         while (true){
-
             Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
                 Map.Entry<Future<Message>, ClientReader> pair = it.next();
@@ -123,11 +131,11 @@ public class Broker {
                 responseList.remove(i);
             }
 
-            if (!input.isEmpty()){
+            /*if (!input.isEmpty()){
                 socket = new Socket("localhost", 5000);
                 executorService.submit(new ClientWriter(socket, input));
                 input = "";
-            }
+            }*/
         }
     }
 }
