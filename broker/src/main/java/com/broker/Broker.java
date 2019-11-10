@@ -17,6 +17,9 @@ public class Broker {
     private static int id = -1;
     private static Socket socket;
     private static ExecutorService executorService = Executors.newCachedThreadPool();
+    private static ConcurrentHashMap<Future<Message>, ClientReader> futureMap = new ConcurrentHashMap<>();
+    private  static ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
+
 
     public static Portfolio portfolio = new Portfolio(
             new Stock("FIAT", 1.0, 10),
@@ -25,9 +28,6 @@ public class Broker {
             new Stock("CSTOCK", 128.60, 3));
 
     private static Socket connect() throws IOException, ExecutionException, InterruptedException {
-
-        HashMap<Future<Message>, ClientReader> futureMap = new HashMap<>();
-        ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
 
         //Create new Socket and send connection request to router on separate Thread
         socket = new Socket("localhost", 5000);
@@ -57,13 +57,6 @@ public class Broker {
                     deadFutureList.add(pair.getKey());
                 }
             }
-
-            for (Future<Message> f : deadFutureList) {
-                futureMap.put(executorService.submit(clientReader), clientReader);
-                futureMap.remove(f);
-            }
-            if (!futureMap.isEmpty())
-                deadFutureList.clear();
         }
 
         return socket;
@@ -77,23 +70,21 @@ public class Broker {
             public void run() {
                 Message message = new Message(id, 500, "V", null);
                 try {
-                    socket = new Socket("localhost", 5001);
+                    socket = new Socket("localhost", 5000);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
                 executorService.submit(new ClientWriter(socket, message.toFix()));
+                ClientReader clientReader = new ClientReader(socket, portfolio);
+                futureMap.put(executorService.submit(clientReader), clientReader);
             }
-        }, 0, 5*60000);
+        }, 0, 2*60000);
     }
 
     public static void main(String args[]) throws IOException, ExecutionException, InterruptedException {
         Socket socket = connect();
-        HashMap<Future<Message>, ClientReader> futureMap = new HashMap<>();
-        ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
-        ArrayList<Order> responseList = new ArrayList<>();
 
-        ClientReader clientReader = new ClientReader(socket, portfolio);
-        futureMap.put(executorService.submit(clientReader), clientReader);
+        BusinessEngine businessEngine = new BusinessEngine(portfolio);
 
         System.out.println("This com.broker.Broker has been assigned ID : " + id + " for this session");
         System.out.println("This com.broker.Broker is now trading the following instruments...");
@@ -107,10 +98,23 @@ public class Broker {
                 Map.Entry<Future<Message>, ClientReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null){
-                        //Message is not from server and therefore constitutes an order
-                        if (pair.getKey().get().getSenderID() != 500){
-                            //TODO Refactor Message to Parse FIX
-                            responseList.add(new Order(pair.getKey().get().getMessage(), pair.getKey().get().getSocket(), portfolio));
+                        //Message is an Order Reject
+                        if (pair.getKey().get().getType() == "j"){
+                            //TODO: Handle Rejects
+                        }
+                        //Message is an Order Accept
+                        else if (pair.getKey().get().getType() == "8"){
+                            //TODO: Recieve the completed Order and update the Business Engine
+                        }
+                        //Message is Market DataSnapShot
+                        else if (pair.getKey().get().getType() == "W"){
+                            MarketSnapshot marketSnapshot = new MarketSnapshot(pair.getKey().get().getMessage());
+                            businessEngine.updateMarketMap(marketSnapshot);
+                            businessEngine.SMAInstruments();
+                        }
+                        //Message is a Market DataSnapshot Reject
+                        else if (pair.getKey().get().getType() == "Y"){
+                            //TODO: Handle Rejects
                         }
                     }
                     deadFutureList.add(pair.getKey());
@@ -118,24 +122,12 @@ public class Broker {
             }
 
             for (Future<Message> f : deadFutureList) {
-                clientReader = new ClientReader(socket, portfolio);
+                ClientReader clientReader = new ClientReader(socket, portfolio);
                 futureMap.put(executorService.submit(clientReader), clientReader);
                 futureMap.remove(f);
             }
             if (!deadFutureList.isEmpty())
                 deadFutureList.clear();
-
-            //Business Logic
-            for (int i = 0; i < responseList.size(); i++){
-                System.out.println("Response From Router : " + responseList.get(i).toFix());
-                responseList.remove(i);
-            }
-
-            /*if (!input.isEmpty()){
-                socket = new Socket("localhost", 5000);
-                executorService.submit(new ClientWriter(socket, input));
-                input = "";
-            }*/
         }
     }
 }

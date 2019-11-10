@@ -32,10 +32,10 @@ public class Market {
         //Create new Socket and send connection request to router on separate Thread
         socket = new Socket("localhost", 5001);
 
+        executorService.submit(new ClientWriter(socket, "35=A"));
+
         ClientReader clientReader = new ClientReader(socket, portfolio);
         futureMap.put(executorService.submit(clientReader), clientReader);
-
-        executorService.submit(new ClientWriter(socket, "35=A"));
 
         while (id == -1){
             Iterator<Map.Entry<Future<Order>, ClientReader>> it = futureMap.entrySet().iterator();
@@ -113,15 +113,15 @@ public class Market {
         ArrayList<Future<Order>> deadFutureList = new ArrayList<>();
         ArrayList<Order> orderList = new ArrayList<>();
 
+        MarketReopen(5);
+        randomizeStock();
+
         ClientReader clientReader = new ClientReader(socket, portfolio);
         futureMap.put(executorService.submit(clientReader), clientReader);
 
         System.out.println("This Market has been assigned ID : " + id + " for this session");
         System.out.println("This Market is now trading the following instruments...");
         System.out.println(portfolio.toString());
-
-        MarketReopen(5);
-        randomizeStock();
 
         while (true){
             Iterator<Map.Entry<Future<Order>, ClientReader>> it = futureMap.entrySet().iterator();

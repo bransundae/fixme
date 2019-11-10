@@ -11,6 +11,7 @@ public class MarketSnapshot extends Message {
     public MarketSnapshot(int senderID, int recipientID, String type, Socket socket, ArrayList<String> snapshots ){
         super(senderID, recipientID, type, socket);
         this.stockSnapshots = snapshots;
+        this.message = toFix();
     }
 
     public MarketSnapshot(String fixMessage){

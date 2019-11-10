@@ -21,30 +21,22 @@ public class BusinessEngine {
         this.portfolio = portfolio;
     }
 
-    public void updateMarketMap(ArrayList<MarketSnapshot> marketSnapshots){
-        for(MarketSnapshot marketSnapshot : marketSnapshots){
-            if (marketMap.get(marketSnapshot.getSenderID()) == null){
-                marketMap.put(marketSnapshot.getSenderID(), marketSnapshot.getPortfolio());
-            } else {
-                marketMap.replace(marketSnapshot.getSenderID(), marketSnapshot.getPortfolio());
-            }
+    public Portfolio getPortfolio() {
+        return portfolio;
+    }
+
+    public void setPortfolio(Portfolio portfolio) {
+        this.portfolio = portfolio;
+    }
+
+    public void updateMarketMap(MarketSnapshot marketSnapshot){
+        if (marketMap.get(marketSnapshot.getSenderID()) == null){
+            marketMap.put(marketSnapshot.getSenderID(), marketSnapshot.getPortfolio());
+        } else {
+            marketMap.replace(marketSnapshot.getSenderID(), marketSnapshot.getPortfolio());
         }
 
-        ArrayList<Integer> deletion = new ArrayList<>();
-
-        Iterator<Map.Entry<Integer, Portfolio>> it = marketMap.entrySet().iterator();
-        while (it.hasNext()){
-            Map.Entry<Integer, Portfolio> pair = it.next();
-            for (MarketSnapshot marketSnapshot : marketSnapshots){
-                if (marketMap.get(marketSnapshot.getSenderID()) == null){
-                    deletion.add(marketSnapshot.getSenderID());
-                }
-            }
-        }
-
-        for (Integer i : deletion){
-            marketMap.remove(i);
-        }
+        //TODO: Handle Deletion
     }
 
     public void SMAInstruments(){
