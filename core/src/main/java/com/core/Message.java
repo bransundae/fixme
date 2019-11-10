@@ -22,6 +22,7 @@ public class Message {
         this.recipientID = recipientID;
         this.type = type;
         this.socket = socket;
+        this.setMessage(this.toFix());
     }
 
     public Message(){
@@ -44,6 +45,12 @@ public class Message {
                         }
                         else if (tag[1].equalsIgnoreCase("D")){
                             type = "D";
+                        }
+                        else if (tag[1].equalsIgnoreCase("W")){
+                            type = "W";
+                        }
+                        else if (tag[1].equalsIgnoreCase("V")){
+                            type = "V";
                         }
                         else{
                             type = "9";

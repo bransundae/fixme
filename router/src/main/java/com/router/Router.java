@@ -1,6 +1,8 @@
 package com.router;
 
+import com.core.MarketSnapshot;
 import com.core.Message;
+import com.core.Portfolio;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -21,6 +23,7 @@ public class Router {
     private static ClientReader brokerReader;
 
     private static Map<Integer, Socket> clientMap = new HashMap<>();
+    private static Map<Integer, MarketSnapshot> marketSnapshotMap = new HashMap<>();
     private static Map<Future<Message>, ClientReader> futureMap = new HashMap<>();
 
     private static ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
@@ -69,16 +72,44 @@ public class Router {
                 Map.Entry<Future<Message>, ClientReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null) {
-                        if (pair.getKey().get().getType().equalsIgnoreCase("A")) {
-                            if (clientMap.get(pair.getKey().get().getSenderID()) == null) {
-                                clientMap.put(pair.getKey().get().getSenderID(), pair.getKey().get().getSocket());
+                        ArrayList<Message> toSend = new ArrayList<>();
+                        //If the sender is previously registered to the router then simply overwrite it's stored socket with the socket it used to send the current message
+                        if (clientMap.get(pair.getKey().get().getSenderID()) != null){
+                            clientMap.replace(pair.getKey().get().getSenderID(), pair.getKey().get().getSocket());
+
+                            //Market Data Snapshot
+                            if (pair.getKey().get().getType().equalsIgnoreCase("W")){
+                                if (marketSnapshotMap.get(pair.getKey().get().getSenderID()) == null){
+                                    marketSnapshotMap.put(pair.getKey().get().getSenderID(), new MarketSnapshot(pair.getKey().get().getMessage()));
+                                }
+                                else if (marketSnapshotMap.get(pair.getKey().get().getSenderID()) != null){
+                                    marketSnapshotMap.replace(pair.getKey().get().getSenderID(), new MarketSnapshot(pair.getKey().get().getMessage()));
+                                }
+                            }
+                            //Market Data Request
+                            else if (pair.getKey().get().getType().equalsIgnoreCase("V")){
+                                Iterator<Map.Entry<Integer, MarketSnapshot>> iterator = marketSnapshotMap.entrySet().iterator();
+                                while (iterator.hasNext()){
+                                    Map.Entry<Integer, MarketSnapshot> itPair = iterator.next();
+                                    toSend.add((Message) new MarketSnapshot(500, pair.getKey().get().getSenderID(), "W", null, itPair.getValue().getStockSnapshots()));
+                                }
+                            }
+                            else {
+                                toSend.add(pair.getKey().get());
                             }
                         }
-                        //If the sender is previously registered to the router then simply overwrite it's stored socket with the socket it used to send the current message
-                        else if (clientMap.get(pair.getKey().get().getSenderID()) != null){
-                            clientMap.replace(pair.getKey().get().getSenderID(), pair.getKey().get().getSocket());
+                        //Registration
+                        else {
+                            if (pair.getKey().get().getType().equalsIgnoreCase("A")) {
+                                if (clientMap.get(pair.getKey().get().getSenderID()) == null) {
+                                    clientMap.put(pair.getKey().get().getSenderID(), pair.getKey().get().getSocket());
+                                    toSend.add(new Message(500, pair.getKey().get().getSenderID(), "0", pair.getKey().get().getSocket()));
+                                }
+                            }
                         }
-                        jobList.add(pair.getKey().get());
+                        for(Message message : toSend) {
+                            jobList.add(message);
+                        }
                     }
                     deadFutureList.add(pair.getKey());
                 }
@@ -97,13 +128,7 @@ public class Router {
                 deadFutureList.clear();
 
             for (int i = 0; i < jobList.size(); i++){
-                if (clientMap.get(jobList.get(i).getRecipientID()) != null)
-                    executorService.submit(new ClientWriter(clientMap.get(jobList.get(i).getRecipientID()), jobList.get(i)));
-                else {
-                    Message message = new Message(500, jobList.get(i).getSenderID(), "0", clientMap.get(jobList.get(i).getSenderID()));
-                    message.setMessage(message.toFix());
-                    executorService.submit(new ClientWriter(clientMap.get(jobList.get(i).getSenderID()), message));
-                }
+                executorService.submit(new ClientWriter(clientMap.get(jobList.get(i).getRecipientID()), jobList.get(i)));
                 jobList.remove(jobList.get(i));
             }
         }

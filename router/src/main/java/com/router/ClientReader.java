@@ -58,7 +58,7 @@ public class ClientReader implements Callable {
             System.out.println("New Connection From Client");
             in = new BufferedReader(new InputStreamReader(client.getInputStream()));
             input = in.readLine();
-            System.out.println(input);
+            //System.out.println(input);
         } catch (SocketTimeoutException e){
             return null;
         } catch (IOException e){
@@ -80,7 +80,7 @@ public class ClientReader implements Callable {
             message.setSenderID(Router.clientID);
         }
 
-        System.out.printf("New Message From Client : %S | Recipient : %S | Message %S\n", message.getSenderID(), message.getRecipientID(), this.message.getMessage());
+        //System.out.printf("New Message From Client : %S | Recipient : %S | Message %S\n", message.getSenderID(), message.getRecipientID(), this.message.getMessage());
         return this.message;
     }
 }

@@ -9,12 +9,25 @@ public class Stock {
     private String name;
     private int hold;
     private double price;
+    private double SMA;
     private HashMap<Integer, ArrayList<Double>> averageMap = new HashMap<>();
 
     public Stock(String name, Double price, int hold){
         this.name = name;
         this.hold = hold;
         this.price = price;
+        this.SMA = price;
+    }
+
+    public Stock(String name, Double price, int hold, double SMA){
+        this.name = name;
+        this.hold = hold;
+        this.price = price;
+        this.SMA = SMA;
+    }
+
+    public Stock(String fixMessage){
+        parseFix(fixMessage);
     }
 
     public double getPrice() {
@@ -62,7 +75,7 @@ public class Stock {
 
     @Override
     public String toString() {
-        return "Stock : " + name + "\nHold : " + hold + "\nPrice : " + price + "868=";
+        return "Stock : " + name + "\nHold : " + hold + "\nPrice : " + price + "\nSMA : " + SMA;
     }
 
     public String toFix(){
@@ -72,5 +85,45 @@ public class Stock {
                 + "38=" + hold + soh
                 + "44=" + price + soh
                 + "868=" + getSMA();
+    }
+
+    public void parseFix(String fixMessage){
+        String soh = "" + (char)1;
+        String split[] = fixMessage.split(soh);
+        for (int i = 0 ; i < split.length; i++){
+            String tag[] = split[i].split("=");
+            if (tag.length > 1) {
+                switch (tag[0]) {
+                    //INSTRUMENT
+                    case "55":
+                        name = tag[1];
+                        break;
+                    //AMOUNT
+                    case "38":
+                        try {
+                            hold = Integer.parseInt(tag[1]);
+                        } catch (NumberFormatException e){
+                            System.out.println("FIX ERROR RECIPIENT");
+                        }
+                        break;
+                    //PRICE
+                    case "44":
+                        try {
+                            price = Double.parseDouble(tag[1]);
+                        } catch (NumberFormatException e){
+                            System.out.println("FIX ERROR SENDER");
+                        }
+                        break;
+                    //SMA
+                    case "868":
+                        try {
+                            SMA = Double.parseDouble(tag[1]);
+                        } catch (NumberFormatException e){
+                            System.out.println("FIX ERROR SENDER");
+                        }
+                        break;
+                }
+            }
+        }
     }
 }
