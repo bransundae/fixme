@@ -7,10 +7,7 @@ import com.core.Portfolio;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -50,12 +47,24 @@ public class Router {
 
         while (it.hasNext()){
             Map.Entry<Integer, Socket> pair = it.next();
-            Message message = new Message(500, pair.getKey(), "0", pair.getValue());
+            Message message = new Message(500, pair.getKey(), "0", pair.getValue(), true);
             message.setMessage(message.toFix());
             executorService.submit(new ClientWriter(pair.getValue(), message));
         }
     }
 
+    private static void messageQueue(){
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (jobList.size() > 0) {
+                    executorService.submit(new ClientWriter(clientMap.get(jobList.get(0).getRecipientID()), jobList.get(0)));
+                    jobList.remove(0);
+                }
+            }
+        }, 0, 500);
+    }
 
     public static void main(String args[]) throws Exception {
 
@@ -63,6 +72,8 @@ public class Router {
 
         futureMap.put(executorService.submit(brokerReader), brokerReader);
         futureMap.put(executorService.submit(marketReader), marketReader);
+
+        messageQueue();
 
         while (true){
             //Iterate through the futureMap and if a Callable has returned a completed Future then add the message to the job queue and remove the future - ClientReader pair
@@ -89,9 +100,15 @@ public class Router {
                             //Market Data Request
                             else if (pair.getKey().get().getType().equalsIgnoreCase("V")){
                                 Iterator<Map.Entry<Integer, MarketSnapshot>> iterator = marketSnapshotMap.entrySet().iterator();
-                                while (iterator.hasNext()){
+                                while (iterator.hasNext()) {
                                     Map.Entry<Integer, MarketSnapshot> itPair = iterator.next();
-                                    toSend.add((Message) new MarketSnapshot(itPair.getKey(), pair.getKey().get().getSenderID(), "W", null, itPair.getValue().getStockSnapshots()));
+                                    if (iterator.hasNext()) {
+                                        toSend.add((Message) new MarketSnapshot(itPair.getKey(), pair.getKey().get().getSenderID(), "W", null, itPair.getValue().getStockSnapshots(), false));
+                                        System.out.println("39=false");
+                                    } else {
+                                        toSend.add((Message) new MarketSnapshot(itPair.getKey(), pair.getKey().get().getSenderID(), "W", null, itPair.getValue().getStockSnapshots(), true));
+                                        System.out.println("39=true");
+                                    }
                                 }
                             }
                             else {
@@ -103,7 +120,7 @@ public class Router {
                             if (pair.getKey().get().getType().equalsIgnoreCase("A")) {
                                 if (clientMap.get(pair.getKey().get().getSenderID()) == null) {
                                     clientMap.put(pair.getKey().get().getSenderID(), pair.getKey().get().getSocket());
-                                    toSend.add(new Message(500, pair.getKey().get().getSenderID(), "0", pair.getKey().get().getSocket()));
+                                    toSend.add(new Message(500, pair.getKey().get().getSenderID(), "0", pair.getKey().get().getSocket(), true));
                                 }
                             }
                         }
@@ -126,11 +143,6 @@ public class Router {
 
             if (!deadFutureList.isEmpty())
                 deadFutureList.clear();
-
-            for (int i = 0; i < jobList.size(); i++){
-                executorService.submit(new ClientWriter(clientMap.get(jobList.get(i).getRecipientID()), jobList.get(i)));
-                jobList.remove(jobList.get(i));
-            }
         }
     }
 }

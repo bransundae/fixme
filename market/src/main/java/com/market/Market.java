@@ -86,10 +86,11 @@ public class Market {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                MarketSnapshot marketSnapshot = new MarketSnapshot(id, 500, "W", null, new ArrayList<String>());
+                MarketSnapshot marketSnapshot = new MarketSnapshot(id, 500, "W", null, new ArrayList<String>(), true);
 
                 for(Stock stock : portfolio.getPortfolio()){
                     stock.newSMAPeriod(SMAPeriod);
+                    randomizeStock();
                     marketSnapshot.addStock(stock.toFix());
                 }
                 try {
@@ -103,7 +104,7 @@ public class Market {
                     SMAPeriod = 1;
                 }
             }
-        }, 0, 60000);
+        }, 0, 10000);
     }
 
     public static void main(String args[]) throws IOException, ExecutionException, InterruptedException {
@@ -114,7 +115,6 @@ public class Market {
         ArrayList<Order> orderList = new ArrayList<>();
 
         MarketReopen(5);
-        randomizeStock();
 
         ClientReader clientReader = new ClientReader(socket, portfolio);
         futureMap.put(executorService.submit(clientReader), clientReader);

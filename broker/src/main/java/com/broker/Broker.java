@@ -8,6 +8,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.lang.reflect.Array;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.*;
@@ -17,9 +18,8 @@ public class Broker {
     private static int id = -1;
     private static Socket socket;
     private static ExecutorService executorService = Executors.newCachedThreadPool();
-    private static ConcurrentHashMap<Future<Message>, ClientReader> futureMap = new ConcurrentHashMap<>();
-    private  static ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
-
+    private static ConcurrentHashMap<Future<ArrayList<Message>>, ClientReader> futureMap = new ConcurrentHashMap<>();
+    private  static ArrayList<Future<ArrayList<Message>>> deadFutureList = new ArrayList<>();
 
     public static Portfolio portfolio = new Portfolio(
             new Stock("FIAT", 1.0, 10),
@@ -38,15 +38,15 @@ public class Broker {
         executorService.submit(new ClientWriter(socket, "35=A"));
 
         while (id == -1){
-            Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
+            Iterator<Map.Entry<Future<ArrayList<Message>>, ClientReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
-                Map.Entry<Future<Message>, ClientReader> pair = it.next();
+                Map.Entry<Future<ArrayList<Message>>, ClientReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey() != null){
                         if (pair.getKey().get() != null) {
-                            if (pair.getKey().get().getSenderID() == 500 && pair.getKey().get().getMessage() != null) {
+                            if (pair.getKey().get().get(0).getSenderID() == 500 && pair.getKey().get().get(0).getMessage() != null) {
                                 try {
-                                    id = pair.getKey().get().getRecipientID();
+                                    id = pair.getKey().get().get(0).getRecipientID();
                                 } catch (NumberFormatException e) {
                                     System.out.println("Router Attempted to assign an Invalid ID");
                                     System.exit(-1);
@@ -68,23 +68,24 @@ public class Broker {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                Message message = new Message(id, 500, "V", null);
+                Message message = new Message(id, 500, "V", null, true);
                 try {
                     socket = new Socket("localhost", 5000);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                System.out.println("REQUESTING A MARKET SNAPSHOT UPDATE");
                 executorService.submit(new ClientWriter(socket, message.toFix()));
                 ClientReader clientReader = new ClientReader(socket, portfolio);
                 futureMap.put(executorService.submit(clientReader), clientReader);
             }
-        }, 0, 2*60000);
+        }, 0, 30000);
     }
 
     public static void main(String args[]) throws IOException, ExecutionException, InterruptedException {
         Socket socket = connect();
 
-        BusinessEngine businessEngine = new BusinessEngine(portfolio);
+        BusinessEngine businessEngine = new BusinessEngine(portfolio, id);
 
         System.out.println("This com.broker.Broker has been assigned ID : " + id + " for this session");
         System.out.println("This com.broker.Broker is now trading the following instruments...");
@@ -93,27 +94,30 @@ public class Broker {
         RequestMarketData();
 
         while (true){
-            Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
+            Iterator<Map.Entry<Future<ArrayList<Message>>, ClientReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
-                Map.Entry<Future<Message>, ClientReader> pair = it.next();
+                Map.Entry<Future<ArrayList<Message>>, ClientReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null){
                         //Message is an Order Reject
-                        if (pair.getKey().get().getType() == "j"){
+                        if (pair.getKey().get().get(0).getType() == "j"){
                             //TODO: Handle Rejects
                         }
                         //Message is an Order Accept
-                        else if (pair.getKey().get().getType() == "8"){
+                        else if (pair.getKey().get().get(0).getType() == "8"){
                             //TODO: Recieve the completed Order and update the Business Engine
                         }
                         //Message is Market DataSnapShot
-                        else if (pair.getKey().get().getType() == "W"){
-                            MarketSnapshot marketSnapshot = new MarketSnapshot(pair.getKey().get().getMessage());
-                            businessEngine.updateMarketMap(marketSnapshot);
+                        else if (pair.getKey().get().get(0).getType() == "W"){
+                            for (int i = 0; i < pair.getKey().get().size(); i++){
+                                businessEngine.updateMarketMap(new MarketSnapshot(pair.getKey().get().get(i).getMessage()));
+                            }
+                            //businessEngine.SMAPeriod();
                             businessEngine.SMAInstruments();
+                            //executorService.submit(new ClientWriter(socket, order.toFix()));
                         }
                         //Message is a Market DataSnapshot Reject
-                        else if (pair.getKey().get().getType() == "Y"){
+                        else if (pair.getKey().get().get(0).getType() == "Y"){
                             //TODO: Handle Rejects
                         }
                     }
@@ -121,7 +125,7 @@ public class Broker {
                 }
             }
 
-            for (Future<Message> f : deadFutureList) {
+            for (Future<ArrayList<Message>> f : deadFutureList) {
                 ClientReader clientReader = new ClientReader(socket, portfolio);
                 futureMap.put(executorService.submit(clientReader), clientReader);
                 futureMap.remove(f);

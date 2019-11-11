@@ -11,6 +11,7 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
 import java.util.concurrent.Callable;
 
 public class ClientReader implements Callable {
@@ -40,7 +41,7 @@ public class ClientReader implements Callable {
     public Object call() throws Exception {
         String input = "";
         BufferedReader in = null;
-        PrintWriter out = null;
+        ArrayList<Message> messages = new ArrayList<>();
 
         //Blocking Socket call
         try {
@@ -58,8 +59,24 @@ public class ClientReader implements Callable {
         }
 
         this.message = new Order(input, client, portfolio);
+        messages.add(this.message);
+        while (!this.message.isDone()){
+            //Blocking Socket call
+            try {
+                in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+                input = in.readLine();
+                this.message = new Order(input, client, portfolio);
+                messages.add(this.message);
+            } catch (SocketTimeoutException e){
+                System.out.println("Read from Client Failed");
+                return messages;
+            } catch (IOException e){
+                System.out.println("Read from Client Failed");
+                return messages;
+            }
+        }
 
-        System.out.printf("New Message From Client : %S | Recipient : %S | Message %S\n", this.message.getSenderID(), this.message.getRecipientID(), this.message.getMessage());
-        return this.message;
+        //System.out.printf("New Message From Client : %S | Recipient : %S | Message %S\n", this.message.getSenderID(), this.message.getRecipientID(), this.message.getMessage());
+        return messages;
     }
 }

@@ -10,6 +10,7 @@ public class Message {
     protected int recipientID = -1;
     protected Socket socket;
     protected String status;
+    protected boolean done = false;
 
     public Message(String fixMessage, Socket socket){
         parseFix(fixMessage);
@@ -17,16 +18,25 @@ public class Message {
         this.socket = socket;
     }
 
-    public Message(int senderID, int recipientID, String type, Socket socket){
+    public Message(int senderID, int recipientID, String type, Socket socket, boolean done){
         this.senderID = senderID;
         this.recipientID = recipientID;
         this.type = type;
         this.socket = socket;
+        this.done = done;
         this.setMessage(this.toFix());
     }
 
     public Message(){
 
+    }
+
+    public boolean isDone() {
+        return done;
+    }
+
+    public void setDone(boolean done) {
+        this.done = done;
     }
 
     public void parseFix(String fixMessage){
@@ -72,6 +82,12 @@ public class Message {
                             System.out.println("FIX ERROR SENDER");
                         }
                         break;
+                    case "39":
+                        if (tag[1].equalsIgnoreCase("1")){
+                            done = false;
+                        } else {
+                            done = true;
+                        }
                 }
             }
             else {
@@ -155,10 +171,14 @@ public class Message {
             toReturn += "56="+recipientID;
         }
 
-        if (status != null){
+        if (done){
             if (i > 0)
                 toReturn += soh;
-            toReturn += "39="+status;
+            toReturn += "39=0";
+        } else{
+            if (i > 0)
+                toReturn += soh;
+            toReturn += "39=1";
         }
         return toReturn;
     }

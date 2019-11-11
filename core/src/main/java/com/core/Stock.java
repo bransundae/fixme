@@ -27,8 +27,16 @@ public class Stock {
         averages.add(price);
     }
 
+    public int getHold() {
+        return hold;
+    }
+
     public Stock(String fixMessage){
         parseFix(fixMessage);
+    }
+
+    public HashMap<Integer, Double> getSmaMap() {
+        return smaMap;
     }
 
     public double getPrice() {
@@ -127,7 +135,7 @@ public class Stock {
                     case "868":
                         String SMA[] = tag[1].split("-");
                         try {
-                            for (int j = 0; j < SMA.length; i++)
+                            for (int j = 0; j < SMA.length; j++)
                                 smaMap.put(j+1, Double.parseDouble(SMA[j]));
                         } catch (NumberFormatException e){
                             System.out.println("FIX ERROR SMA");

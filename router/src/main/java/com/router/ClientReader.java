@@ -70,8 +70,6 @@ public class ClientReader implements Callable {
             return null;
         }
 
-        out = new PrintWriter(this.client.getOutputStream(), true);
-
         this.message = new Message(input, this.client);
 
         //If client ID does not exist then assign client an ID and store socket in HashMap

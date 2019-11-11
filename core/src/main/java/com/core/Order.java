@@ -18,6 +18,15 @@ public class Order extends Message{
 
     }
 
+    public Order(String type, int senderID, int recipientID, Stock stock, double bid, int quantity){
+        this.type = type;
+        this.senderID = senderID;
+        this.recipientID = recipientID;
+        this.stock = stock;
+        this.bid = bid;
+        this.quantity = quantity;
+    }
+
     public Order(Portfolio portfolio){
         super();
         this.portfolio = portfolio;
