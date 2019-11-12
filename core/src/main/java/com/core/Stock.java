@@ -134,11 +134,14 @@ public class Stock {
                     //SMA
                     case "868":
                         String SMA[] = tag[1].split("-");
+                        String val = "";
                         try {
-                            for (int j = 0; j < SMA.length; j++)
-                                smaMap.put(j+1, Double.parseDouble(SMA[j]));
+                            for (int j = 0; j < SMA.length; j++) {
+                                if (SMA[j] != null)
+                                    smaMap.put(j + 1, Double.parseDouble(SMA[j]));
+                            }
                         } catch (NumberFormatException e){
-                            System.out.println("FIX ERROR SMA");
+                            System.out.println("FIX ERROR SMA: " + val);
                         }
                         break;
                 }

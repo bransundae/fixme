@@ -35,7 +35,7 @@ public class Broker {
         ClientReader clientReader = new ClientReader(socket, portfolio);
         futureMap.put(executorService.submit(clientReader), clientReader);
 
-        executorService.submit(new ClientWriter(socket, "35=A"));
+        executorService.submit(new ClientWriter(socket, new Message("35=A")));
 
         while (id == -1){
             Iterator<Map.Entry<Future<ArrayList<Message>>, ClientReader>> it = futureMap.entrySet().iterator();
@@ -68,14 +68,14 @@ public class Broker {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                Message message = new Message(id, 500, "V", null, true);
+                Message message = new Message(id, 500, "V", true);
                 try {
                     socket = new Socket("localhost", 5000);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
                 System.out.println("REQUESTING A MARKET SNAPSHOT UPDATE");
-                executorService.submit(new ClientWriter(socket, message.toFix()));
+                executorService.submit(new ClientWriter(socket, message));
                 ClientReader clientReader = new ClientReader(socket, portfolio);
                 futureMap.put(executorService.submit(clientReader), clientReader);
             }

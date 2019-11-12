@@ -1,5 +1,7 @@
 package com.broker;
 
+import com.core.Message;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
@@ -8,10 +10,10 @@ import java.util.concurrent.Callable;
 public class ClientWriter implements Callable {
 
     private Socket client;
-    private String message;
+    private Message message;
     private PrintWriter out;
 
-    public ClientWriter(Socket client, String message){
+    public ClientWriter(Socket client, Message message){
         this.client = client;
         this.message = message;
     }
@@ -23,12 +25,11 @@ public class ClientWriter implements Callable {
     @Override
     public Object call() throws Exception {
         PrintWriter out = null;
+        this.message.setChecksum(this.message.generateChecksum(this.message.toFix()));
         try {
-            out = new PrintWriter(client.getOutputStream());
-            out.write(message);
-            out.flush();
-            client.shutdownOutput();
-            System.out.println("Response Sent To Client");
+            out = new PrintWriter(client.getOutputStream(), true);
+            out.println(message.toFix());
+            System.out.println("Response Sent To Client : " + message.toFix());
         } catch (IOException e){
             System.out.println("Write to Client Failed");
             return null;

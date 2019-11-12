@@ -70,7 +70,7 @@ public class ClientReader implements Callable {
             return null;
         }
 
-        this.message = new Message(input, this.client);
+        this.message = new Message(input);
 
         //If client ID does not exist then assign client an ID and store socket in HashMap
         if (this.message.getType().equalsIgnoreCase("A")) {
@@ -78,7 +78,15 @@ public class ClientReader implements Callable {
             message.setSenderID(Router.clientID);
         }
 
+        if (this.message.validateChecksum(message.toFix())) {
+            System.out.println("Checksum Validates");
+            return this.message;
+        }
+        else {
+            System.out.println("Checksum does not Validate, Faulty Receive");
+            return null;
+        }
+
         //System.out.printf("New Message From Client : %S | Recipient : %S | Message %S\n", message.getSenderID(), message.getRecipientID(), this.message.getMessage());
-        return this.message;
     }
 }
