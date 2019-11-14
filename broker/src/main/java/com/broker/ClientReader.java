@@ -89,7 +89,9 @@ public class ClientReader implements Callable {
             }
         }
 
-        //System.out.printf("New Message From Client : %S | Recipient : %S | Message %S\n", this.message.getSenderID(), this.message.getRecipientID(), this.message.getMessage());
+        for (Message message : messages){
+            System.out.println("Message: " + message.getMessage());
+        }
         return messages;
     }
 }

@@ -1,5 +1,7 @@
 package com.core;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -16,14 +18,14 @@ public class Stock {
     public Stock(String name, Double price, int hold){
         this.name = name;
         this.hold = hold;
-        this.price = price;
+        setPrice(price);
         averages.add(price);
     }
 
     public Stock(String name, Double price, int hold, ArrayList<Double> SMAs){
         this.name = name;
         this.hold = hold;
-        this.price = price;
+        setPrice(price);
         averages.add(price);
     }
 
@@ -52,7 +54,7 @@ public class Stock {
     }
 
     public void setPrice(double price) {
-        this.price = price;
+        this.price = round(price, 2);
         recordPrice();
     }
 
@@ -74,12 +76,20 @@ public class Stock {
         recordPrice();
     }
 
+    public double round(double value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
+
+        BigDecimal bd = BigDecimal.valueOf(value);
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        return bd.doubleValue();
+    }
+
     public double getSMA() {
         double SMA = 0;
         for (int i = 0; i < averages.size(); i++){
                 SMA += averages.get(i);
         }
-        return (SMA / averages.size());
+        return (round(SMA / averages.size(), 2));
     }
 
     @Override
@@ -98,7 +108,7 @@ public class Stock {
             Map.Entry<Integer, Double> pair = it.next();
             toReturn += pair.getValue();
             if (it.hasNext()){
-                toReturn += "-";
+                toReturn += ",";
             }
         }
         return toReturn;
@@ -133,12 +143,14 @@ public class Stock {
                         break;
                     //SMA
                     case "868":
-                        String SMA[] = tag[1].split("-");
+                        String SMA[] = tag[1].split(",");
                         String val = "";
                         try {
                             for (int j = 0; j < SMA.length; j++) {
-                                if (SMA[j] != null)
+                                if (SMA[j] != null) {
+                                    System.out.println("SMA: " + SMA[j]);
                                     smaMap.put(j + 1, Double.parseDouble(SMA[j]));
+                                }
                             }
                         } catch (NumberFormatException e){
                             System.out.println("FIX ERROR SMA: " + val);
