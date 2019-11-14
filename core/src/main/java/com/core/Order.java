@@ -25,6 +25,7 @@ public class Order extends Message{
         this.stock = stock;
         this.bid = bid;
         this.quantity = quantity;
+        this.message = toFix();
     }
 
     public Order(Portfolio portfolio){

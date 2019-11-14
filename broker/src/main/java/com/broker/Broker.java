@@ -19,7 +19,8 @@ public class Broker {
     private static Socket socket;
     private static ExecutorService executorService = Executors.newCachedThreadPool();
     private static ConcurrentHashMap<Future<ArrayList<Message>>, ClientReader> futureMap = new ConcurrentHashMap<>();
-    private  static ArrayList<Future<ArrayList<Message>>> deadFutureList = new ArrayList<>();
+    private static ArrayList<Future<ArrayList<Message>>> deadFutureList = new ArrayList<>();
+    private static ArrayList<Order> orderList = new ArrayList<>();
 
     public static Portfolio portfolio = new Portfolio(
             new Stock("FIAT", 1.0, 10),
@@ -112,9 +113,11 @@ public class Broker {
                             for (int i = 0; i < pair.getKey().get().size(); i++){
                                 businessEngine.updateMarketMap(new MarketSnapshot(pair.getKey().get().get(i).getMessage()));
                             }
-                            //businessEngine.SMAPeriod();
-                            businessEngine.SMAInstruments();
-                            //executorService.submit(new ClientWriter(socket, order.toFix()));
+                            ArrayList<Order> orders = businessEngine.SMAInstruments();
+                            for (Order order : orders){
+                                if (!orderList.contains(order))
+                                    orderList.add(order);
+                            }
                         }
                         //Message is a Market DataSnapshot Reject
                         else if (pair.getKey().get().get(0).getType() == "Y"){
@@ -132,6 +135,10 @@ public class Broker {
             }
             if (!deadFutureList.isEmpty())
                 deadFutureList.clear();
+            for (Order order : orderList){
+                executorService.submit(new ClientWriter(socket, order));
+            }
+            orderList.clear();
         }
     }
 }

@@ -36,23 +36,35 @@ public class BusinessEngine {
         }
     }
 
-    //TODO: MAKE THIS FUNCTION RETURN AN ORDER OBJECT
-    public void SMAInstruments(){
+    public ArrayList<Order> SMAInstruments(){
+        ArrayList<Order> orders = new ArrayList<>();
         Iterator<Map.Entry<Integer, Portfolio>> it = marketMap.entrySet().iterator();
         while (it.hasNext()){
             Map.Entry<Integer, Portfolio> pair = it.next();
             for (Stock stock : pair.getValue().getPortfolio()){
-                if (stock.getMaxDifference() > 0.5){
-                    System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "BUY");
-                    //Order order = new Order("D", id, pair.getKey(), stock.getName(), );
-                } else if (stock.getMaxDifference() < -0.5){
-                    System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "SELL");
+                if (stock.getMaxDifference() > 0.5 && !stock.getName().equalsIgnoreCase("FIAT")){
+                    int hold = calcBuyAmount(stock, 10);
+                    if (hold > 0) {
+                        System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "BUYING " + hold + " UNITS");
+                        orders.add(new Order("D", id, pair.getKey(), stock, stock.getPrice(), hold));
+                    } else {
+                        System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "HOLD");
+                    }
+                } else if (stock.getMaxDifference() < -0.5 && !stock.getName().equalsIgnoreCase("FIAT")){
+                    int hold = calcSellAmount(stock, 50);
+                    if (hold > 0) {
+                        System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "SELLING " + hold + " UNITS");
+                        orders.add(new Order("D", id, pair.getKey(), stock, stock.getPrice(), hold));
+                    } else {
+                        System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "HOLD");
+                    }
                 }
-                else{
+                else if (!stock.getName().equalsIgnoreCase("FIAT")){
                     System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "HOLD");
                 }
             }
         }
+        return orders;
     }
 
     public void SMAPeriod(){
@@ -67,5 +79,20 @@ public class BusinessEngine {
                 }
             }
         }
+    }
+
+    public int calcBuyAmount(Stock stock, int percent){
+        double stockPrice = stock.getPrice();
+        int fiat = portfolio.getStock("FIAT").getHold();
+        if (fiat <= 0)
+            return 0;
+        return (int)((fiat / 100 * percent) / stockPrice);
+    }
+
+    public int calcSellAmount(Stock stock, int percent){
+        int hold = portfolio.getStock(stock.getName()).getHold();
+        if (hold <= 0)
+            return 0;
+        return (int)((hold / 100 * percent));
     }
 }
