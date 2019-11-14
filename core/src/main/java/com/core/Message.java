@@ -27,9 +27,10 @@ public class Message {
         this.setMessage(this.toFix());
     }
 
-    public Message(){
+    public Message(){ 
 
     }
+
 
     public boolean isDone() {
         return done;

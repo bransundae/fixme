@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 public class BusinessEngine {
-
+ 
     Portfolio portfolio;
     int id = -1;
     HashMap<Integer, Portfolio> marketMap = new HashMap<>();
@@ -44,7 +44,7 @@ public class BusinessEngine {
             for (Stock stock : pair.getValue().getPortfolio()){
                 if (stock.getMaxDifference() > 0.5){
                     System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "BUY");
-                    //Order order = new Order("D", id, pair.getKey(), stock.getName(), );
+                    Order order = new Order("D", id, pair.getKey(), stock.getName(), stock.getPrice(), (stock.getHold()/2);
                 } else if (stock.getMaxDifference() < -0.5){
                     System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "SELL");
                 }

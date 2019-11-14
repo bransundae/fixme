@@ -1,5 +1,6 @@
 package com.market;
 
+import com.market.ClientWriter;
 import com.core.*;
 
 import java.io.IOException;
@@ -113,6 +114,7 @@ public class Market {
         HashMap<Future<Order>, ClientReader> futureMap = new HashMap<>();
         ArrayList<Future<Order>> deadFutureList = new ArrayList<>();
         ArrayList<Order> orderList = new ArrayList<>();
+        
 
         MarketReopen(5);
 
@@ -152,17 +154,32 @@ public class Market {
                 Order order = orderList.get(i);
                 if (portfolio.getStock(order.getStock().getName()) != null){
                     if (!order.isReady()){
-                        //TODO SESSION LEVEL REJECT
+                        Message message = new Message(id, order.getSenderID(), "j", null, true);
+                        executorService.submit(new ClientWriter(socket, message.toFix()));
+                        orderList.remove(order);
                         System.out.println("Order Rejected");
                     }
                     else {
                         if (order.isBuy()) {
                             if (order.getBid() <= portfolio.getStock(order.getStock().getName()).getPrice()) {
+                                
                                 //If buyer is offering less than market price then market will search for sellers willing to accept bid
                                 //TODO MARKET WILL SEARCH FOR BROKERS THAT WILL ACCEPT THE BID
 
                             } else {
-                                //TODO MARKET WILL SELL STOCKS
+                                    //is there some kind of balnace to see whether broker has enough funds to cover cost = price * quantity ?
+                                    if (portfolio.getStock(order.getStock().getName()).getHold() <= order.getQuantity()) {
+                                    order.setQuantity(portfolio.getStock(order.getStock().getName()).getHold());
+                                    portfolio.removeStock(portfolio.getStock(order.getStock().getName()));
+                                }
+                                else {
+                                    int hold = portfolio.getStock(order.getStock().getName()).getHold();
+                                    portfolio.getStock(order.getStock().getName()).setHold(hold - order.getQuantity());   
+                                }
+                                Message message = new Message(id, order.getSenderID(), "8", null, true);
+                                executorService.submit(new ClientWriter(socket, message.toFix()));
+                                orderList.remove(order);
+                                System.out.println("Order Processed");
                             }
                         } else {
                             if (order.getBid() >= portfolio.getStock(order.getStock().getName()).getPrice()) {

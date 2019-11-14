@@ -101,7 +101,7 @@ public class Broker {
                     if (pair.getKey().get() != null){
                         //Message is an Order Reject
                         if (pair.getKey().get().get(0).getType() == "j"){
-                            //TODO: Handle Rejects
+                            System.out.println("Order rejected");
                         }
                         //Message is an Order Accept
                         else if (pair.getKey().get().get(0).getType() == "8"){

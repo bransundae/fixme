@@ -7,7 +7,7 @@ public class Order extends Message{
 
     private Stock stock;
     private int quantity = -1;
-    private boolean buy;
+    private boolean buy; 
     private double bid = -1;
     private Portfolio portfolio;
 
@@ -20,9 +20,9 @@ public class Order extends Message{
 
     public Order(String type, int senderID, int recipientID, Stock stock, double bid, int quantity){
         this.type = type;
-        this.senderID = senderID;
+        this.senderID = senderID; 
         this.recipientID = recipientID;
-        this.stock = stock;
+        this.stock = stock; 
         this.bid = bid;
         this.quantity = quantity;
     }
@@ -82,6 +82,8 @@ public class Order extends Message{
         }
     }
 
+   
+
     public Stock getStock() {
         return stock;
     }
@@ -113,6 +115,8 @@ public class Order extends Message{
     public void setBuy(boolean buy) {
         this.buy = buy;
     }
+
+
 
     public boolean isReady(){
         return this.type != null && this.recipientID != -1 && this.senderID != -1 && stock != null && this.quantity != -1 && this.bid != -1;
