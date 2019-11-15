@@ -58,15 +58,28 @@ public class ClientReader implements Callable {
             return null;
         }
 
-        this.message = new Order(input, client, portfolio);
-        messages.add(this.message);
+        this.message = new Order(input, portfolio);
+
+        if (this.message.validateChecksum(message.getMessage())) {
+            System.out.println("Checksum Validates");
+            messages.add(this.message);
+        }
+        else {
+            System.out.println("Checksum does not Validate, Faulty Receive");
+        }
         while (!this.message.isDone()){
             //Blocking Socket call
             try {
                 in = new BufferedReader(new InputStreamReader(client.getInputStream()));
                 input = in.readLine();
-                this.message = new Order(input, client, portfolio);
-                messages.add(this.message);
+                this.message = new Order(input, portfolio);
+                if (this.message.validateChecksum(message.toFix())) {
+                    System.out.println("Checksum Validates");
+                    messages.add(this.message);
+                }
+                else {
+                    System.out.println("Checksum does not Validate, Faulty Receive");
+                }
             } catch (SocketTimeoutException e){
                 System.out.println("Read from Client Failed");
                 return messages;
@@ -76,7 +89,9 @@ public class ClientReader implements Callable {
             }
         }
 
-        //System.out.printf("New Message From Client : %S | Recipient : %S | Message %S\n", this.message.getSenderID(), this.message.getRecipientID(), this.message.getMessage());
+        for (Message message : messages){
+            System.out.println("Message: " + message.getMessage());
+        }
         return messages;
     }
 }

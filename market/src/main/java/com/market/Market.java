@@ -33,7 +33,7 @@ public class Market {
         //Create new Socket and send connection request to router on separate Thread
         socket = new Socket("localhost", 5001);
 
-        executorService.submit(new ClientWriter(socket, "35=A"));
+        executorService.submit(new ClientWriter(socket, new Message("35=A")));
 
         ClientReader clientReader = new ClientReader(socket, portfolio);
         futureMap.put(executorService.submit(clientReader), clientReader);
@@ -87,7 +87,7 @@ public class Market {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                MarketSnapshot marketSnapshot = new MarketSnapshot(id, 500, "W", null, new ArrayList<String>(), true);
+                MarketSnapshot marketSnapshot = new MarketSnapshot(id, 500, "W", new ArrayList<String>(), true);
 
                 for(Stock stock : portfolio.getPortfolio()){
                     stock.newSMAPeriod(SMAPeriod);
@@ -99,7 +99,7 @@ public class Market {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                executorService.submit(new ClientWriter(socket, marketSnapshot.toFix()));
+                executorService.submit(new ClientWriter(socket, marketSnapshot));
                 SMAPeriod++;
                 if (SMAPeriod > SMALimit){
                     SMAPeriod = 1;
@@ -191,7 +191,7 @@ public class Market {
                                 order.setSenderID(id);
                                 order.setStatus("2");
                                 socket = new Socket("localhost", 5001);
-                                executorService.submit(new ClientWriter(socket, order.toFix()));
+                                executorService.submit(new ClientWriter(socket, order));
                                 orderList.remove(order);
                             }
                         }

@@ -8,21 +8,19 @@ public class Message {
     protected String type;
     protected int senderID = -1;
     protected int recipientID = -1;
-    protected Socket socket;
     protected String status;
     protected boolean done = false;
+    protected String checksum;
 
-    public Message(String fixMessage, Socket socket){
+    public Message(String fixMessage){
         parseFix(fixMessage);
         this.message = fixMessage;
-        this.socket = socket;
     }
 
-    public Message(int senderID, int recipientID, String type, Socket socket, boolean done){
+    public Message(int senderID, int recipientID, String type, boolean done){
         this.senderID = senderID;
         this.recipientID = recipientID;
         this.type = type;
-        this.socket = socket;
         this.done = done;
         this.setMessage(this.toFix());
     }
@@ -83,6 +81,11 @@ public class Message {
                             System.out.println("FIX ERROR SENDER");
                         }
                         break;
+                    //CHECKSUM
+                    case "10":
+                        checksum = tag[1];
+                        break;
+                        //STATUS
                     case "39":
                         if (tag[1].equalsIgnoreCase("1")){
                             done = false;
@@ -97,20 +100,12 @@ public class Message {
         }
     }
 
-    public Socket getSocket() {
-        return socket;
-    }
-
     public String getType() {
         return type;
     }
 
     public void setType(String type) {
         this.type = type;
-    }
-
-    public void setSocket(Socket socket) {
-        this.socket = socket;
     }
 
     public int getRecipientID() {
@@ -181,6 +176,51 @@ public class Message {
                 toReturn += soh;
             toReturn += "39=1";
         }
+
+        if (checksum != null){
+            if (i > 0)
+                toReturn += soh;
+            toReturn += "10="+checksum;
+        }
         return toReturn;
+    }
+
+    public void setChecksum(String checksum) {
+        this.checksum = checksum;
+    }
+
+    public String getChecksum() {
+        return checksum;
+    }
+
+    public String generateChecksum(String fixMessage){
+        String soh = "" + (char)1;
+        String arr[] = fixMessage.split(soh);
+        long checksum = 0;
+        for(int i = 0; i < arr.length; i++){
+            String tag[] = arr[i].split("=");
+            for (int j = 0; j < arr[i].length(); j++){
+                if (tag[0] != "10")
+                    checksum += (int)arr[i].charAt(j);
+            }
+        }
+        checksum = 256 % checksum;
+
+        if (checksum >= 100)
+            return "" + checksum;
+        else if (checksum >= 10)
+            return "0" + checksum;
+        else
+            return "00" + checksum;
+
+    }
+
+    public boolean validateChecksum(String fixMessage){
+        if (checksum != null){
+            if (generateChecksum(fixMessage).equalsIgnoreCase(checksum)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

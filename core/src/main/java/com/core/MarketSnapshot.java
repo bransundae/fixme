@@ -8,14 +8,14 @@ public class MarketSnapshot extends Message {
 
     private ArrayList<String> stockSnapshots = new ArrayList<>();
 
-    public MarketSnapshot(int senderID, int recipientID, String type, Socket socket, ArrayList<String> snapshots, boolean done){
-        super(senderID, recipientID, type, socket, done);
+    public MarketSnapshot(int senderID, int recipientID, String type, ArrayList<String> snapshots, boolean done){
+        super(senderID, recipientID, type, done);
         this.stockSnapshots = snapshots;
         this.message = toFix();
     }
 
-    public MarketSnapshot(int senderID, int recipientID, String type, Socket socket, boolean done){
-        super(senderID, recipientID, type, socket, done);
+    public MarketSnapshot(int senderID, int recipientID, String type, boolean done){
+        super(senderID, recipientID, type, done);
 
         this.message = toFix();
     }

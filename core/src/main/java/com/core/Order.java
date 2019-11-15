@@ -11,8 +11,8 @@ public class Order extends Message{
     private double bid = -1;
     private Portfolio portfolio;
 
-    public Order(String fixMessage, Socket socket, Portfolio portfolio){
-        super(fixMessage, socket);
+    public Order(String fixMessage, Portfolio portfolio){
+        super(fixMessage);
         this.portfolio = portfolio;
         parseFix(fixMessage);
 
@@ -25,6 +25,7 @@ public class Order extends Message{
         this.stock = stock; 
         this.bid = bid;
         this.quantity = quantity;
+        this.message = toFix();
     }
 
     public Order(Portfolio portfolio){

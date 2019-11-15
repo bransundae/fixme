@@ -57,9 +57,17 @@ public class ClientReader implements Callable {
             return null;
         }
 
-        this.order = new Order(input, this.client, this.portfolio);
+        this.order = new Order(input, this.portfolio);
 
-        System.out.printf("New Message From Router : %S | Recipient : %S | Message %S\n", this.order.getSenderID(), this.order.getRecipientID(), order.toFix());
-        return this.order;
+        if (this.order.validateChecksum(order.toFix())) {
+            System.out.println("Checksum Validates");
+            return this.order;
+        }
+        else {
+            System.out.println("Checksum does not Validate, Faulty Receive");
+            return null;
+        }
+
+        //System.out.printf("New Message From Router : %S | Recipient : %S | Message %S\n", this.order.getSenderID(), this.order.getRecipientID(), order.toFix());
     }
 }

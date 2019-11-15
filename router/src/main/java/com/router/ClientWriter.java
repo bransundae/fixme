@@ -25,10 +25,11 @@ public class ClientWriter implements Callable {
     @Override
     public Object call() throws Exception {
         PrintWriter out = null;
+        this.message.setChecksum(this.message.generateChecksum(this.message.toFix()));
         try {
             out = new PrintWriter(client.getOutputStream(), true);
-            out.println(message.getMessage());
-            System.out.println("Response Sent To Client : " + message.getMessage());
+            out.println(message.toFix());
+            System.out.println("Response Sent To Client : " + message.toFix());
         } catch (IOException e){
             System.out.println("Write to Client Failed");
             return null;

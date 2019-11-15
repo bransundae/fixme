@@ -19,7 +19,8 @@ public class Broker {
     private static Socket socket;
     private static ExecutorService executorService = Executors.newCachedThreadPool();
     private static ConcurrentHashMap<Future<ArrayList<Message>>, ClientReader> futureMap = new ConcurrentHashMap<>();
-    private  static ArrayList<Future<ArrayList<Message>>> deadFutureList = new ArrayList<>();
+    private static ArrayList<Future<ArrayList<Message>>> deadFutureList = new ArrayList<>();
+    private static ArrayList<Order> orderList = new ArrayList<>();
 
     public static Portfolio portfolio = new Portfolio(
             new Stock("FIAT", 1.0, 10),
@@ -35,7 +36,7 @@ public class Broker {
         ClientReader clientReader = new ClientReader(socket, portfolio);
         futureMap.put(executorService.submit(clientReader), clientReader);
 
-        executorService.submit(new ClientWriter(socket, "35=A"));
+        executorService.submit(new ClientWriter(socket, new Message("35=A")));
 
         while (id == -1){
             Iterator<Map.Entry<Future<ArrayList<Message>>, ClientReader>> it = futureMap.entrySet().iterator();
@@ -68,14 +69,14 @@ public class Broker {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                Message message = new Message(id, 500, "V", null, true);
+                Message message = new Message(id, 500, "V", true);
                 try {
                     socket = new Socket("localhost", 5000);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
                 System.out.println("REQUESTING A MARKET SNAPSHOT UPDATE");
-                executorService.submit(new ClientWriter(socket, message.toFix()));
+                executorService.submit(new ClientWriter(socket, message));
                 ClientReader clientReader = new ClientReader(socket, portfolio);
                 futureMap.put(executorService.submit(clientReader), clientReader);
             }
@@ -112,9 +113,11 @@ public class Broker {
                             for (int i = 0; i < pair.getKey().get().size(); i++){
                                 businessEngine.updateMarketMap(new MarketSnapshot(pair.getKey().get().get(i).getMessage()));
                             }
-                            //businessEngine.SMAPeriod();
-                            businessEngine.SMAInstruments();
-                            //executorService.submit(new ClientWriter(socket, order.toFix()));
+                            ArrayList<Order> orders = businessEngine.SMAInstruments();
+                            for (Order order : orders){
+                                if (!orderList.contains(order))
+                                    orderList.add(order);
+                            }
                         }
                         //Message is a Market DataSnapshot Reject
                         else if (pair.getKey().get().get(0).getType() == "Y"){
@@ -132,6 +135,10 @@ public class Broker {
             }
             if (!deadFutureList.isEmpty())
                 deadFutureList.clear();
+            for (Order order : orderList){
+                executorService.submit(new ClientWriter(socket, order));
+            }
+            orderList.clear();
         }
     }
 }
