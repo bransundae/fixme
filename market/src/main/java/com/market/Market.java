@@ -4,18 +4,22 @@ import com.market.ClientWriter;
 import com.core.*;
 
 import java.io.IOException;
+import java.lang.Math;
 import java.net.Socket;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.*;
+
+import static com.core.MathUtil.round;
 
 public class Market {
 
     private static int id = -1;
     private static Socket socket;
     private static int SMAPeriod = 1;
+
+    private static ConcurrentHashMap<Future<ArrayList<Order>>, ClientReader> futureMap = new ConcurrentHashMap<>();
+    private static ArrayList<Future<ArrayList<Order>>> deadFutureList = new ArrayList<>();
+    private static ArrayList<Order> orderList = new ArrayList<>();
 
     private static ExecutorService executorService = Executors.newCachedThreadPool();
 
@@ -26,28 +30,24 @@ public class Market {
             new Stock("CSTOCK", 128.60, 30));
 
     private static Socket connect() throws IOException, ExecutionException, InterruptedException {
-
-        HashMap<Future<Order>, ClientReader> futureMap = new HashMap<>();
-        ArrayList<Future<Order>> deadFutureList = new ArrayList<>();
-
         //Create new Socket and send connection request to router on separate Thread
         socket = new Socket("localhost", 5001);
 
         executorService.submit(new ClientWriter(socket, new Message("35=A")));
 
-        ClientReader clientReader = new ClientReader(socket, portfolio);
+        ClientReader clientReader = new ClientReader(socket);
         futureMap.put(executorService.submit(clientReader), clientReader);
 
         while (id == -1){
-            Iterator<Map.Entry<Future<Order>, ClientReader>> it = futureMap.entrySet().iterator();
+            Iterator<Map.Entry<Future<ArrayList<Order>>, ClientReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
-                Map.Entry<Future<Order>, ClientReader> pair = it.next();
+                Map.Entry<Future<ArrayList<Order>>, ClientReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey() != null){
                         if (pair.getKey().get() != null) {
-                            if (pair.getKey().get().getSenderID() == 500 && pair.getKey().get().getMessage() != null) {
+                            if (pair.getKey().get().get(0).getSenderID() == 500 && pair.getKey().get().get(0).getMessage() != null) {
                                 try {
-                                    id = pair.getKey().get().getRecipientID();
+                                    id = pair.getKey().get().get(0).getRecipientID();
                                 } catch (NumberFormatException e) {
                                     System.out.println("Router Attempted to assign an Invalid ID");
                                     System.exit(-1);
@@ -58,26 +58,20 @@ public class Market {
                     deadFutureList.add(pair.getKey());
                 }
             }
-
-            for (Future<Order> f : deadFutureList) {
-                futureMap.put(executorService.submit(clientReader), clientReader);
-                futureMap.remove(f);
-            }
-            if (!futureMap.isEmpty())
-                deadFutureList.clear();
         }
-
         return socket;
     }
 
     private static void randomizeStock(){
 
-        Double fluc[] = {.3, -.3};
+        //Double fluc[] = {.1, .2, -.1, -.2, -.5, .5, .3, -.3};
+
+        Double fluc[] = {.1, .2};
 
         int random = (int)(Math.random() * ((1 - 0) + 1)) + 0;
 
         for (Stock stock : portfolio.getPortfolio()){
-            stock.setPrice(stock.getPrice() + fluc[random]);
+            stock.setPrice(round(stock.getPrice() + fluc[random], 2));
         }
     }
 
@@ -88,10 +82,9 @@ public class Market {
             @Override
             public void run() {
                 MarketSnapshot marketSnapshot = new MarketSnapshot(id, 500, "W", new ArrayList<String>(), true);
-
+                randomizeStock();
                 for(Stock stock : portfolio.getPortfolio()){
                     stock.newSMAPeriod(SMAPeriod);
-                    randomizeStock();
                     marketSnapshot.addStock(stock.toFix());
                 }
                 try {
@@ -99,7 +92,15 @@ public class Market {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                System.out.println("SENDING A MARKET SNAPSHOT UPDATE");
                 executorService.submit(new ClientWriter(socket, marketSnapshot));
+                ClientReader clientReader = new ClientReader(socket);
+                futureMap.put(executorService.submit(clientReader), clientReader);
+                futureMap.put(executorService.submit(clientReader), clientReader);
+
+                //System.out.println("This Market is now trading the following instruments...");
+                //System.out.println(portfolio.toString());
+
                 SMAPeriod++;
                 if (SMAPeriod > SMALimit){
                     SMAPeriod = 1;
@@ -109,40 +110,28 @@ public class Market {
     }
 
     public static void main(String args[]) throws IOException, ExecutionException, InterruptedException {
-
         Socket socket = connect();
-        HashMap<Future<Order>, ClientReader> futureMap = new HashMap<>();
-        ArrayList<Future<Order>> deadFutureList = new ArrayList<>();
-        ArrayList<Order> orderList = new ArrayList<>();
-        
-
         MarketReopen(5);
 
-        ClientReader clientReader = new ClientReader(socket, portfolio);
-        futureMap.put(executorService.submit(clientReader), clientReader);
-
         System.out.println("This Market has been assigned ID : " + id + " for this session");
-        System.out.println("This Market is now trading the following instruments...");
-        System.out.println(portfolio.toString());
 
         while (true){
-            Iterator<Map.Entry<Future<Order>, ClientReader>> it = futureMap.entrySet().iterator();
+            Iterator<Map.Entry<Future<ArrayList<Order>>, ClientReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
-                Map.Entry<Future<Order>, ClientReader> pair = it.next();
+                Map.Entry<Future<ArrayList<Order>>, ClientReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null){
                         //Message is not from server and therefore constitutes an order
-                        if (pair.getKey().get().getSenderID() != 500){
-                            //TODO Refactor Message to Parse FIX
-                            orderList.add(pair.getKey().get());
-                        }
+                        if (pair.getKey().get().get(0).getSenderID() != 500)
+                            for (Order order : pair.getKey().get())
+                                orderList.add(order);
                     }
                     deadFutureList.add(pair.getKey());
                 }
             }
 
-            for (Future<Order> f : deadFutureList) {
-                clientReader = new ClientReader(socket, portfolio);
+            for (Future<ArrayList<Order>> f : deadFutureList) {
+                ClientReader clientReader = new ClientReader(socket);
                 futureMap.put(executorService.submit(clientReader), clientReader);
                 futureMap.remove(f);
             }
@@ -152,130 +141,64 @@ public class Market {
             //Business Logic
             for (int i = 0; i < orderList.size(); i++){
                 Order order = orderList.get(i);
-                if (portfolio.getStock(order.getStock().getName()) != null){
+                if (portfolio.getStock(order.getStock()) != null){
+                    //SESSION LEVEL REJECT
                     if (!order.isReady()){
-                        Message message = new Message(id, order.getSenderID(), "j", null, true);
-                        executorService.submit(new ClientWriter(socket, message.toFix()));
-                        orderList.remove(order);
-                        System.out.println("Order Rejected");
+                        Message message = new Message(id, order.getSenderID(), "3", true);
+                        socket = new Socket("localhost", 5001);
+                        executorService.submit(new ClientWriter(socket, message));
+                        System.out.println("Session Level Reject");
                     }
+                    //SESSION LEVEL VALIDATES
                     else {
                         if (order.isBuy()) {
-                            if (order.getBid() <= portfolio.getStock(order.getStock().getName()).getPrice()) {
-                                
-                                //If buyer is offering less than market price then market will search for sellers willing to accept bid
+                            //BUY ORDER WHERE BID IS LESS THAN  MARKET PRICE
+                            if (order.getBid() <= portfolio.getStock(order.getStock()).getPrice() - .03) {
                                 //TODO MARKET WILL SEARCH FOR BROKERS THAT WILL ACCEPT THE BID
-
-                            } else {
-                                    //is there some kind of balnace to see whether broker has enough funds to cover cost = price * quantity ?
-                                    if (portfolio.getStock(order.getStock().getName()).getHold() <= order.getQuantity()) {
-                                    order.setQuantity(portfolio.getStock(order.getStock().getName()).getHold());
-                                    portfolio.removeStock(portfolio.getStock(order.getStock().getName()));
+                                System.out.println("UNACEPTABLE BID");
+                            }
+                            //BUY ORDER WHERE BID IS GREATER THAN OR EQUAL TO MARKET PRICE
+                            else {
+                                //MARKET HAS THE AMOUNT OF STOCK REQUESTED
+                                if (portfolio.getStock(order.getStock()).getHold() >= order.getQuantity()) {
+                                    portfolio.getStock("FIAT").modHold((int)(order.getQuantity() * order.getBid()));
+                                    portfolio.getStock(order.getStock()).modHold(-(order.getQuantity()));
+                                    order.returnToSender("8");
                                 }
                                 else {
-                                    int hold = portfolio.getStock(order.getStock().getName()).getHold();
-                                    portfolio.getStock(order.getStock().getName()).setHold(hold - order.getQuantity());   
+                                    order.returnToSender("j");
                                 }
-                                Message message = new Message(id, order.getSenderID(), "8", null, true);
-                                executorService.submit(new ClientWriter(socket, message.toFix()));
-                                orderList.remove(order);
-                                System.out.println("Order Processed");
-                            }
-                        } else {
-                            if (order.getBid() >= portfolio.getStock(order.getStock().getName()).getPrice()) {
-                                //If seller is asking for more than market price the market will search for buyers willing to accept the bid}
-                            } else {
-                                //If seller is asking for less than market price then the market will buy the stock and resell, keeping the profit
-                                //TODO MARKET PURCHASE STOCKS
-                                order.setRecipientID(order.getSenderID());
-                                order.setSenderID(id);
-                                order.setStatus("2");
                                 socket = new Socket("localhost", 5001);
                                 executorService.submit(new ClientWriter(socket, order));
-                                orderList.remove(order);
+                                System.out.println("Order Processed");
+                                System.out.println("This Market is now trading the following instruments...");
+                                System.out.println(portfolio.toString());
+                            }
+                        } else {
+                            //SELL ORDER WHERE ASK IS GREATER THAN MARKET PRICE
+                            if (order.getBid() >= portfolio.getStock(order.getStock()).getPrice()) {
+                                //TODO MARKET WILL SEARCH FOR BUYERS WILLING TO ACCEPT BID
+                            }
+                            //SELL ORDER WHERE ASK IS LESS THAN OR EQUAL MARKET PRICE
+                            else {
+                                if (portfolio.getStock("FIAT").getHold() >= (order.getQuantity() * order.getBid())) {
+                                    portfolio.getStock(order.getStock()).modHold(order.getQuantity());
+                                    portfolio.getStock("FIAT").modHold(-(int)(order.getQuantity() * order.getBid()));
+                                    order.returnToSender("8");
+                                } else {
+                                    order.returnToSender("j");
+                                }
+                                socket = new Socket("localhost", 5001);
+                                executorService.submit(new ClientWriter(socket, order));
+                                System.out.println("Order Processed");
+                                System.out.println("This Market is now trading the following instruments...");
+                                System.out.println(portfolio.toString());
                             }
                         }
                     }
                 }
             }
+            orderList.clear();
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        /*while (true){
-            String input = "";
-            String response = "";
-            int num = 0;
-
-            //Block until Market recieves input
-            in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-
-            int senderID = -1;
-            int recipientID = -1;
-            int order = -1;
-
-            try {
-                input = in.readLine();
-                System.out.println("Got input: " + input);
-            } catch (IOException e){
-                System.out.println("Invalid Input");
-            }
-
-            String split[] = input.split("\\|");
-
-            try {
-                senderID = Integer.parseInt(split[0]);
-                recipientID = Integer.parseInt(split[1]);
-                order = Integer.parseInt(split[2]);
-            } catch (NumberFormatException e){
-                System.out.println("Invalid Input");
-            }
-
-            System.out.println("Broker : Requesting " + order + " shares...");
-
-            if (order <= apples && order > 0){
-                response = "1";
-                apples -= order;
-                System.out.println("Transaction Approved!");
-            }
-            else {
-                response = "0";
-                System.out.println("Transaction Refused!");
-            }
-
-            socket = new Socket("localhost", 5001);
-
-            System.out.println(apples + " shares are availabe...");
-            out = new PrintWriter(socket.getOutputStream(), true);
-            out.println(id + "|" + senderID + "|" + response);
-        }*/
     }
 }

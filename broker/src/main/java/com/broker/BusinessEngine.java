@@ -6,7 +6,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
+
+import static com.core.MathUtil.round;
 
 public class BusinessEngine {
  
@@ -45,16 +46,16 @@ public class BusinessEngine {
                 if (stock.getMaxDifference() > 0.5 && !stock.getName().equalsIgnoreCase("FIAT")){
                     int hold = calcBuyAmount(stock, 10);
                     if (hold > 0) {
-                        System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "BUYING " + hold + " UNITS");
-                        orders.add(new Order("D", id, pair.getKey(), stock, stock.getPrice(), hold));
+                        System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "BUYING " + hold + " UNITS at " + stock.getPrice() + " per UNIT");
+                        orders.add(new Order("D", id, pair.getKey(), stock.getName(), stock.getPrice(), hold, true));
                     } else {
                         System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "HOLD");
                     }
                 } else if (stock.getMaxDifference() < -0.5 && !stock.getName().equalsIgnoreCase("FIAT")){
                     int hold = calcSellAmount(stock, 50);
                     if (hold > 0) {
-                        System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "SELLING " + hold + " UNITS");
-                        orders.add(new Order("D", id, pair.getKey(), stock, stock.getPrice(), hold));
+                        System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "SELLING " + hold + " UNITS at " + stock.getPrice() + " per UNIT");
+                        orders.add(new Order("D", id, pair.getKey(), stock.getName(), stock.getPrice(), hold, false));
                     } else {
                         System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "HOLD");
                     }
@@ -62,6 +63,14 @@ public class BusinessEngine {
                 else if (!stock.getName().equalsIgnoreCase("FIAT")){
                     System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "HOLD");
                 }
+            }
+        }
+
+        for (int i = 0; i < orders.size(); i++){
+            if(i + 1 == orders.size()){
+                orders.get(i).setDone(true);
+            } else {
+                orders.get(i).setDone(false);
             }
         }
         return orders;

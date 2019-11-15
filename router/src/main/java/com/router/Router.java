@@ -2,6 +2,7 @@ package com.router;
 
 import com.core.MarketSnapshot;
 import com.core.Message;
+import com.core.Order;
 import com.core.Portfolio;
 
 import java.io.*;
@@ -96,6 +97,7 @@ public class Router {
                                 else if (marketSnapshotMap.get(pair.getKey().get().getSenderID()) != null){
                                     marketSnapshotMap.replace(pair.getKey().get().getSenderID(), new MarketSnapshot(pair.getKey().get().getMessage()));
                                 }
+                                /*toSend.add(new Message(500, pair.getKey().get().getSenderID(), "0", true));*/
                             }
                             //Market Data Request
                             else if (pair.getKey().get().getType().equalsIgnoreCase("V")){
@@ -109,8 +111,10 @@ public class Router {
                                     }
                                 }
                             }
-                            else {
-                                toSend.add(pair.getKey().get());
+                            //Business Orders
+                            else if (pair.getKey().get().getType().equalsIgnoreCase("D") || pair.getKey().get().getType().equalsIgnoreCase("8")
+                            || pair.getKey().get().getType().equalsIgnoreCase("j") || pair.getKey().get().getType().equalsIgnoreCase("3")){
+                                toSend.add(new Order(pair.getKey().get().getMessage()));
                             }
                         }
                         //Registration

@@ -38,6 +38,13 @@ public class Message {
         this.done = done;
     }
 
+    public void returnToSender(String responseType){
+        int temp = this.senderID;
+        this.senderID = this.recipientID;
+        this.recipientID = temp;
+        this.type = responseType;
+    }
+
     public void parseFix(String fixMessage){
         String soh = "" + (char)1;
         String split[] = fixMessage.split(soh);

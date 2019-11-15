@@ -23,20 +23,19 @@ public class Broker {
     private static ArrayList<Order> orderList = new ArrayList<>();
 
     public static Portfolio portfolio = new Portfolio(
-            new Stock("FIAT", 1.0, 10),
+            new Stock("FIAT", 1.0, 1000),
             new Stock("ASTOCK", 12.30, 10),
             new Stock("BSTOCK", 21.20, 5),
             new Stock("CSTOCK", 128.60, 3));
 
     private static Socket connect() throws IOException, ExecutionException, InterruptedException {
-
         //Create new Socket and send connection request to router on separate Thread
         socket = new Socket("localhost", 5000);
 
-        ClientReader clientReader = new ClientReader(socket, portfolio);
-        futureMap.put(executorService.submit(clientReader), clientReader);
-
         executorService.submit(new ClientWriter(socket, new Message("35=A")));
+
+        ClientReader clientReader = new ClientReader(socket);
+        futureMap.put(executorService.submit(clientReader), clientReader);
 
         while (id == -1){
             Iterator<Map.Entry<Future<ArrayList<Message>>, ClientReader>> it = futureMap.entrySet().iterator();
@@ -59,7 +58,6 @@ public class Broker {
                 }
             }
         }
-
         return socket;
     }
 
@@ -77,7 +75,7 @@ public class Broker {
                 }
                 System.out.println("REQUESTING A MARKET SNAPSHOT UPDATE");
                 executorService.submit(new ClientWriter(socket, message));
-                ClientReader clientReader = new ClientReader(socket, portfolio);
+                ClientReader clientReader = new ClientReader(socket);
                 futureMap.put(executorService.submit(clientReader), clientReader);
             }
         }, 0, 30000);
@@ -85,7 +83,6 @@ public class Broker {
 
     public static void main(String args[]) throws IOException, ExecutionException, InterruptedException {
         Socket socket = connect();
-
         BusinessEngine businessEngine = new BusinessEngine(portfolio, id);
 
         System.out.println("This com.broker.Broker has been assigned ID : " + id + " for this session");
@@ -129,14 +126,17 @@ public class Broker {
             }
 
             for (Future<ArrayList<Message>> f : deadFutureList) {
-                ClientReader clientReader = new ClientReader(socket, portfolio);
+                ClientReader clientReader = new ClientReader(socket);
                 futureMap.put(executorService.submit(clientReader), clientReader);
                 futureMap.remove(f);
             }
             if (!deadFutureList.isEmpty())
                 deadFutureList.clear();
             for (Order order : orderList){
+                socket = new Socket("localhost", 5000);
                 executorService.submit(new ClientWriter(socket, order));
+                ClientReader clientReader = new ClientReader(socket);
+                futureMap.put(executorService.submit(clientReader), clientReader);
             }
             orderList.clear();
         }

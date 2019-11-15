@@ -86,7 +86,5 @@ public class ClientReader implements Callable {
             System.out.println("Checksum does not Validate, Faulty Receive");
             return null;
         }
-
-        //System.out.printf("New Message From Client : %S | Recipient : %S | Message %S\n", message.getSenderID(), message.getRecipientID(), this.message.getMessage());
     }
 }

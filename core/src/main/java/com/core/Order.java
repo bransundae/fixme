@@ -5,32 +5,30 @@ import java.net.Socket;
 
 public class Order extends Message{
 
-    private Stock stock;
+    private String stock;
     private int quantity = -1;
     private boolean buy; 
     private double bid = -1;
-    private Portfolio portfolio;
 
-    public Order(String fixMessage, Portfolio portfolio){
+    public Order(String fixMessage){
         super(fixMessage);
-        this.portfolio = portfolio;
         parseFix(fixMessage);
 
     }
 
-    public Order(String type, int senderID, int recipientID, Stock stock, double bid, int quantity){
+    public Order(String type, int senderID, int recipientID, String stock, double bid, int quantity, boolean buy){
         this.type = type;
         this.senderID = senderID; 
         this.recipientID = recipientID;
         this.stock = stock; 
         this.bid = bid;
         this.quantity = quantity;
+        this.buy = buy;
         this.message = toFix();
     }
 
     public Order(Portfolio portfolio){
         super();
-        this.portfolio = portfolio;
     }
 
     @Override
@@ -44,7 +42,7 @@ public class Order extends Message{
                 switch (tag[0]) {
                     //BUY OR SELL
                     case "54":
-                        if (tag[1] == "1")
+                        if (tag[1].equalsIgnoreCase("1"))
                             buy = true;
                         else
                             buy = false;
@@ -52,8 +50,7 @@ public class Order extends Message{
 
                     //STOCK
                     case "55":
-                        if (portfolio != null)
-                            stock = this.portfolio.getStock(tag[1]);
+                            stock = tag[1];
                         break;
 
                     //QUANTITY
@@ -61,7 +58,7 @@ public class Order extends Message{
                         try {
                             quantity = Integer.parseInt(tag[1]);
                         } catch (NumberFormatException e){
-                            System.out.println("FIX ERROR");
+                            System.out.println("FIX ERROR HOLD");
                         }
                         break;
 
@@ -70,7 +67,7 @@ public class Order extends Message{
                         try {
                             bid = Double.parseDouble(tag[1]);
                         } catch (NumberFormatException e){
-                            System.out.println("FIX ERROR");
+                            System.out.println("FIX ERROR BID");
                         }
                         break;
 
@@ -85,7 +82,7 @@ public class Order extends Message{
 
    
 
-    public Stock getStock() {
+    public String getStock() {
         return stock;
     }
 
@@ -97,7 +94,7 @@ public class Order extends Message{
         return bid;
     }
 
-    public void setStock(Stock stock) {
+    public void setStock(String stock) {
         this.stock = stock;
     }
 
@@ -130,7 +127,7 @@ public class Order extends Message{
         int i = 0;
 
         if (stock != null){
-            toReturn += "55="+stock.getName();
+            toReturn += "55="+stock;
             i++;
         }
 

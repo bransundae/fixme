@@ -11,7 +11,6 @@ public class ClientWriter implements Callable {
 
     private Socket client;
     private Message message;
-    private PrintWriter out;
 
     public ClientWriter(Socket client, Message message){
         this.client = client;

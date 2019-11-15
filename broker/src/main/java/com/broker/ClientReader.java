@@ -18,13 +18,10 @@ public class ClientReader implements Callable {
 
     private Socket client;
 
-    private Portfolio portfolio;
-
     private Order message;
 
-    public ClientReader(Socket client, Portfolio portfolio) {
+    public ClientReader(Socket client) {
         this.client = client;
-        this.portfolio = portfolio;
 
         try {
             this.client.setSoTimeout(2000);
@@ -58,7 +55,7 @@ public class ClientReader implements Callable {
             return null;
         }
 
-        this.message = new Order(input, portfolio);
+        this.message = new Order(input);
 
         if (this.message.validateChecksum(message.getMessage())) {
             System.out.println("Checksum Validates");
@@ -72,7 +69,7 @@ public class ClientReader implements Callable {
             try {
                 in = new BufferedReader(new InputStreamReader(client.getInputStream()));
                 input = in.readLine();
-                this.message = new Order(input, portfolio);
+                this.message = new Order(input);
                 if (this.message.validateChecksum(message.toFix())) {
                     System.out.println("Checksum Validates");
                     messages.add(this.message);

@@ -1,6 +1,7 @@
 package com.market;
 
 import com.core.Message;
+import com.core.Order;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -12,11 +13,16 @@ public class ClientWriter implements Callable {
 
     private Socket client;
     private Message message;
-    private PrintWriter out;
+    private Order order;
 
     public ClientWriter(Socket client, Message message){
         this.client = client;
         this.message = message;
+    }
+
+    public ClientWriter(Socket client, Order order){
+        this.client = client;
+        this.order = order;
     }
 
     public Socket getClient() {
@@ -26,15 +32,32 @@ public class ClientWriter implements Callable {
     @Override
     public Object call() throws Exception {
         PrintWriter out = null;
-        this.message.setChecksum(this.message.generateChecksum(this.message.toFix()));
-        try {
-            out = new PrintWriter(client.getOutputStream(), true);
-            out.println(message.toFix());
-            System.out.println("Response Sent To Client : " + message.toFix());
-        } catch (IOException e){
-            System.out.println("Write to Client Failed");
-            return null;
+        if (this.message != null) {
+            this.message.setChecksum(this.message.generateChecksum(this.message.toFix()));
+            try {
+                out = new PrintWriter(client.getOutputStream(), true);
+                out.println(message.toFix());
+                //System.out.println("Response Sent To Client : " + message.toFix());
+            } catch (IOException e) {
+                System.out.println("Write to Client Failed");
+                return null;
+            }
+            return message;
         }
-        return message;
+
+        else if (this.order != null){
+            this.order.setChecksum(this.order.generateChecksum(this.order.toFix()));
+            try {
+                out = new PrintWriter(client.getOutputStream(), true);
+                out.println(order.toFix());
+                System.out.println("Response Sent To Client : " + order.toFix());
+            } catch (IOException e) {
+                System.out.println("Write to Client Failed");
+                return null;
+            }
+            return order;
+        }
+
+        return null;
     }
 }

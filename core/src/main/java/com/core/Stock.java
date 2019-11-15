@@ -1,11 +1,11 @@
 package com.core;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+
+import static com.core.MathUtil.round;
 
 public class Stock {
 
@@ -62,6 +62,10 @@ public class Stock {
         recordPrice();
     }
 
+    public void modHold(int red){
+        hold += red;
+    }
+
     public void recordPrice(){
         averages.add(this.price);
     }
@@ -78,14 +82,6 @@ public class Stock {
         }
         averages.clear();
         recordPrice();
-    }
-
-    public double round(double value, int places) {
-        if (places < 0) throw new IllegalArgumentException();
-
-        BigDecimal bd = BigDecimal.valueOf(value);
-        bd = bd.setScale(places, RoundingMode.HALF_UP);
-        return bd.doubleValue();
     }
 
     public double getSMA() {
@@ -134,7 +130,7 @@ public class Stock {
                         try {
                             hold = Integer.parseInt(tag[1]);
                         } catch (NumberFormatException e){
-                            System.out.println("FIX ERROR RECIPIENT");
+                            System.out.println("FIX ERROR HOLD");
                         }
                         break;
                     //PRICE
@@ -152,7 +148,6 @@ public class Stock {
                         try {
                             for (int j = 0; j < SMA.length; j++) {
                                 if (SMA[j] != null) {
-                                    System.out.println("SMA: " + SMA[j]);
                                     smaMap.put(j + 1, Double.parseDouble(SMA[j]));
                                 }
                             }

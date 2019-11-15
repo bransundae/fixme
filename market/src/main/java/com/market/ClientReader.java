@@ -14,17 +14,16 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
 import java.util.concurrent.Callable;
 
 public class ClientReader implements Callable {
 
     private Socket client;
-    private Portfolio portfolio;
     private Order order;
 
-    public ClientReader(Socket client, Portfolio portfolio) {
+    public ClientReader(Socket client) {
         this.client = client;
-        this.portfolio = portfolio;
 
         try {
             this.client.setSoTimeout(2000);
@@ -41,6 +40,7 @@ public class ClientReader implements Callable {
     public Object call() throws Exception {
         String input = "";
         BufferedReader in = null;
+        ArrayList<Message> messages = new ArrayList<>();
 
         //Blocking Socket call
         try {
@@ -49,7 +49,7 @@ public class ClientReader implements Callable {
         } catch (SocketTimeoutException e){
             return null;
         } catch (IOException e){
-            System.out.println("Read from Router Failed");
+            System.out.println("Read from Client Failed");
             return null;
         }
 
@@ -57,17 +57,40 @@ public class ClientReader implements Callable {
             return null;
         }
 
-        this.order = new Order(input, this.portfolio);
+        this.order = new Order(input);
 
-        if (this.order.validateChecksum(order.toFix())) {
+        if (this.order.validateChecksum(order.getMessage())) {
             System.out.println("Checksum Validates");
-            return this.order;
+            messages.add(this.order);
         }
         else {
             System.out.println("Checksum does not Validate, Faulty Receive");
-            return null;
+        }
+        while (!this.order.isDone()){
+            //Blocking Socket call
+            try {
+                in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+                input = in.readLine();
+                this.order = new Order(input);
+                if (this.order.validateChecksum(order.toFix())) {
+                    System.out.println("Checksum Validates");
+                    messages.add(this.order);
+                }
+                else {
+                    System.out.println("Checksum does not Validate, Faulty Receive");
+                }
+            } catch (SocketTimeoutException e){
+                System.out.println("Read from Client Failed");
+                return messages;
+            } catch (IOException e){
+                System.out.println("Read from Client Failed");
+                return messages;
+            }
         }
 
-        //System.out.printf("New Message From Router : %S | Recipient : %S | Message %S\n", this.order.getSenderID(), this.order.getRecipientID(), order.toFix());
+        for (Message message : messages){
+            System.out.println("Message: " + message.getMessage());
+        }
+        return messages;
     }
 }
