@@ -18,6 +18,7 @@ public class Market {
     private static int SMAPeriod = 1;
 
     private static ConcurrentHashMap<Future<ArrayList<Order>>, ClientReader> futureMap = new ConcurrentHashMap<>();
+    private static ArrayList<Message> messageQueue = new ArrayList<>();
     private static ArrayList<Future<ArrayList<Order>>> deadFutureList = new ArrayList<>();
     private static ArrayList<Order> orderList = new ArrayList<>();
 
@@ -31,7 +32,7 @@ public class Market {
 
     private static Socket connect() throws IOException, ExecutionException, InterruptedException {
         //Create new Socket and send connection request to router on separate Thread
-        socket = new Socket("localhost", 5001);
+        Socket socket = new Socket("localhost", 5001);
 
         executorService.submit(new ClientWriter(socket, new Message("35=A")));
 
@@ -87,31 +88,40 @@ public class Market {
                     stock.newSMAPeriod(SMAPeriod);
                     marketSnapshot.addStock(stock.toFix());
                 }
-                try {
-                    socket = new Socket("localhost", 5001);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
                 System.out.println("SENDING A MARKET SNAPSHOT UPDATE");
-                executorService.submit(new ClientWriter(socket, marketSnapshot));
-                ClientReader clientReader = new ClientReader(socket);
-                futureMap.put(executorService.submit(clientReader), clientReader);
-                futureMap.put(executorService.submit(clientReader), clientReader);
-
-                //System.out.println("This Market is now trading the following instruments...");
-                //System.out.println(portfolio.toString());
-
+                messageQueue.add(marketSnapshot);
                 SMAPeriod++;
                 if (SMAPeriod > SMALimit){
                     SMAPeriod = 1;
                 }
             }
-        }, 0, 10000);
+        }, 0, 20000);
+    }
+
+    private static void messageQueue(){
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (messageQueue.size() > 0) {
+                    try {
+                        socket = new Socket("localhost", 5001);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    executorService.submit(new ClientWriter(socket, messageQueue.get(0)));
+                    ClientReader clientReader = new ClientReader(socket);
+                    futureMap.put(executorService.submit(new ClientReader(socket)), clientReader);
+                    messageQueue.remove(0);
+                }
+            }
+        }, 0, 1000);
     }
 
     public static void main(String args[]) throws IOException, ExecutionException, InterruptedException {
-        Socket socket = connect();
+        socket = connect();
         MarketReopen(5);
+        messageQueue();
 
         System.out.println("This Market has been assigned ID : " + id + " for this session");
 
@@ -144,9 +154,7 @@ public class Market {
                 if (portfolio.getStock(order.getStock()) != null){
                     //SESSION LEVEL REJECT
                     if (!order.isReady()){
-                        Message message = new Message(id, order.getSenderID(), "3", true);
-                        socket = new Socket("localhost", 5001);
-                        executorService.submit(new ClientWriter(socket, message));
+                        messageQueue.add(new Message(id, order.getSenderID(), "3", true));
                         System.out.println("Session Level Reject");
                     }
                     //SESSION LEVEL VALIDATES
@@ -155,7 +163,7 @@ public class Market {
                             //BUY ORDER WHERE BID IS LESS THAN  MARKET PRICE
                             if (order.getBid() <= portfolio.getStock(order.getStock()).getPrice() - .03) {
                                 //TODO MARKET WILL SEARCH FOR BROKERS THAT WILL ACCEPT THE BID
-                                System.out.println("UNACEPTABLE BID");
+                                System.out.println("UNACCEPTABLE BID");
                             }
                             //BUY ORDER WHERE BID IS GREATER THAN OR EQUAL TO MARKET PRICE
                             else {
@@ -163,16 +171,19 @@ public class Market {
                                 if (portfolio.getStock(order.getStock()).getHold() >= order.getQuantity()) {
                                     portfolio.getStock("FIAT").modHold((int)(order.getQuantity() * order.getBid()));
                                     portfolio.getStock(order.getStock()).modHold(-(order.getQuantity()));
+                                    order.setDone(true);
                                     order.returnToSender("8");
+                                    System.out.println("NEW BUY ORDER RECEIPT : " + order.toFix());
                                 }
                                 else {
+                                    order.setDone(true);
                                     order.returnToSender("j");
+                                    System.out.println("NEW BUY ORDER REJECT : " + order.toFix());
                                 }
-                                socket = new Socket("localhost", 5001);
-                                executorService.submit(new ClientWriter(socket, order));
-                                System.out.println("Order Processed");
+                                messageQueue.add(order);
+                                /*System.out.println("Order Processed");
                                 System.out.println("This Market is now trading the following instruments...");
-                                System.out.println(portfolio.toString());
+                                System.out.println(portfolio.toString());*/
                             }
                         } else {
                             //SELL ORDER WHERE ASK IS GREATER THAN MARKET PRICE
@@ -184,15 +195,16 @@ public class Market {
                                 if (portfolio.getStock("FIAT").getHold() >= (order.getQuantity() * order.getBid())) {
                                     portfolio.getStock(order.getStock()).modHold(order.getQuantity());
                                     portfolio.getStock("FIAT").modHold(-(int)(order.getQuantity() * order.getBid()));
+                                    order.setDone(true);
                                     order.returnToSender("8");
                                 } else {
+                                    order.setDone(true);
                                     order.returnToSender("j");
                                 }
-                                socket = new Socket("localhost", 5001);
-                                executorService.submit(new ClientWriter(socket, order));
-                                System.out.println("Order Processed");
+                                messageQueue.add(order);
+                               /* System.out.println("Order Processed");
                                 System.out.println("This Market is now trading the following instruments...");
-                                System.out.println(portfolio.toString());
+                                System.out.println(portfolio.toString());*/
                             }
                         }
                     }

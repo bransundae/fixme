@@ -47,7 +47,7 @@ public class ClientReader implements Callable {
         } catch (SocketTimeoutException e){
             return null;
         } catch (IOException e){
-            System.out.println("Read from Client Failed");
+            System.out.println("Read from Client Failed IO one");
             return null;
         }
 
@@ -58,7 +58,6 @@ public class ClientReader implements Callable {
         this.message = new Order(input);
 
         if (this.message.validateChecksum(message.getMessage())) {
-            System.out.println("Checksum Validates");
             messages.add(this.message);
         }
         else {
@@ -71,24 +70,20 @@ public class ClientReader implements Callable {
                 input = in.readLine();
                 this.message = new Order(input);
                 if (this.message.validateChecksum(message.toFix())) {
-                    System.out.println("Checksum Validates");
                     messages.add(this.message);
                 }
                 else {
                     System.out.println("Checksum does not Validate, Faulty Receive");
                 }
             } catch (SocketTimeoutException e){
-                System.out.println("Read from Client Failed");
+                System.out.println("Read from Client Failed Timeout Two");
                 return messages;
             } catch (IOException e){
-                System.out.println("Read from Client Failed");
+                System.out.println("Read from Client Failed IO Two");
                 return messages;
             }
         }
 
-        for (Message message : messages){
-            System.out.println("Message: " + message.getMessage());
-        }
         return messages;
     }
 }

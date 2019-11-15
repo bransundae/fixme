@@ -29,7 +29,6 @@ public class Message {
 
     }
 
-
     public boolean isDone() {
         return done;
     }
@@ -67,6 +66,15 @@ public class Message {
                         }
                         else if (tag[1].equalsIgnoreCase("V")){
                             type = "V";
+                        }
+                        else if (tag[1].equalsIgnoreCase("8")){
+                            type = "8";
+                        }
+                        else if (tag[1].equalsIgnoreCase("j")){
+                            type = "j";
+                        }
+                        else if (tag[1].equalsIgnoreCase("3")){
+                            type = "3";
                         }
                         else{
                             type = "9";

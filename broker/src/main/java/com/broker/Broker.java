@@ -21,6 +21,7 @@ public class Broker {
     private static ConcurrentHashMap<Future<ArrayList<Message>>, ClientReader> futureMap = new ConcurrentHashMap<>();
     private static ArrayList<Future<ArrayList<Message>>> deadFutureList = new ArrayList<>();
     private static ArrayList<Order> orderList = new ArrayList<>();
+    private static ArrayList<Message> messageQueue = new ArrayList<>();
 
     public static Portfolio portfolio = new Portfolio(
             new Stock("FIAT", 1.0, 1000),
@@ -30,7 +31,7 @@ public class Broker {
 
     private static Socket connect() throws IOException, ExecutionException, InterruptedException {
         //Create new Socket and send connection request to router on separate Thread
-        socket = new Socket("localhost", 5000);
+        Socket socket = new Socket("localhost", 5000);
 
         executorService.submit(new ClientWriter(socket, new Message("35=A")));
 
@@ -78,11 +79,32 @@ public class Broker {
                 ClientReader clientReader = new ClientReader(socket);
                 futureMap.put(executorService.submit(clientReader), clientReader);
             }
-        }, 0, 30000);
+        }, 0, 20000);
+    }
+
+    private static void messageQueue(){
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if (messageQueue.size() > 0) {
+                    try {
+                        socket = new Socket("localhost", 5000);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    executorService.submit(new ClientWriter(socket, messageQueue.get(0)));
+                    ClientReader clientReader = new ClientReader(socket);
+                    futureMap.put(executorService.submit(new ClientReader(socket)), clientReader);
+                    messageQueue.remove(0);
+                }
+            }
+        }, 0, 1000);
     }
 
     public static void main(String args[]) throws IOException, ExecutionException, InterruptedException {
-        Socket socket = connect();
+        socket = connect();
+        messageQueue();
         BusinessEngine businessEngine = new BusinessEngine(portfolio, id);
 
         System.out.println("This com.broker.Broker has been assigned ID : " + id + " for this session");
@@ -99,14 +121,15 @@ public class Broker {
                     if (pair.getKey().get() != null){
                         //Message is an Order Reject
                         if (pair.getKey().get().get(0).getType() == "j"){
-                            System.out.println("Order rejected");
+                            System.out.println("ORDER REJECTED : " + pair.getKey().get().get(0));
                         }
                         //Message is an Order Accept
                         else if (pair.getKey().get().get(0).getType() == "8"){
-                            //TODO: Recieve the completed Order and update the Business Engine
+                            System.out.println("ORDER RECEIPT : " + pair.getKey().get().get(0));
                         }
                         //Message is Market DataSnapShot
                         else if (pair.getKey().get().get(0).getType() == "W"){
+                            System.out.println("MARKET DATA SNAPSHOTS RECEIVED : " + pair.getKey().get().size());
                             for (int i = 0; i < pair.getKey().get().size(); i++){
                                 businessEngine.updateMarketMap(new MarketSnapshot(pair.getKey().get().get(i).getMessage()));
                             }
@@ -133,10 +156,7 @@ public class Broker {
             if (!deadFutureList.isEmpty())
                 deadFutureList.clear();
             for (Order order : orderList){
-                socket = new Socket("localhost", 5000);
-                executorService.submit(new ClientWriter(socket, order));
-                ClientReader clientReader = new ClientReader(socket);
-                futureMap.put(executorService.submit(clientReader), clientReader);
+                messageQueue.add(order);
             }
             orderList.clear();
         }

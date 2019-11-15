@@ -43,7 +43,7 @@ public class BusinessEngine {
         while (it.hasNext()){
             Map.Entry<Integer, Portfolio> pair = it.next();
             for (Stock stock : pair.getValue().getPortfolio()){
-                if (stock.getMaxDifference() > 0.5 && !stock.getName().equalsIgnoreCase("FIAT")){
+                if (stock.getMaxDifference() > 0.2 && !stock.getName().equalsIgnoreCase("FIAT")){
                     int hold = calcBuyAmount(stock, 10);
                     if (hold > 0) {
                         System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "BUYING " + hold + " UNITS at " + stock.getPrice() + " per UNIT");
@@ -70,7 +70,7 @@ public class BusinessEngine {
             if(i + 1 == orders.size()){
                 orders.get(i).setDone(true);
             } else {
-                orders.get(i).setDone(false);
+                orders.get(i).setDone(true);
             }
         }
         return orders;
