@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
 public class BusinessEngine {
-
+ 
     Portfolio portfolio;
     int id = -1;
     HashMap<Integer, Portfolio> marketMap = new HashMap<>();

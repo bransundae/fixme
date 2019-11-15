@@ -33,6 +33,10 @@ public class Stock {
         return hold;
     }
 
+    public void setHold(int hold) {
+        this.hold = hold;
+    }
+
     public Stock(String fixMessage){
         parseFix(fixMessage);
     }
