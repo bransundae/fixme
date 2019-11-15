@@ -68,18 +68,19 @@ public class Broker {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                Message message = new Message(id, 500, "V", true);
+                Message message = new Message(id, 500, "V");
                 try {
                     socket = new Socket("localhost", 5000);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                portfolio.print();
                 System.out.println("REQUESTING A MARKET SNAPSHOT UPDATE");
                 executorService.submit(new ClientWriter(socket, message));
                 ClientReader clientReader = new ClientReader(socket);
                 futureMap.put(executorService.submit(clientReader), clientReader);
             }
-        }, 0, 20000);
+        }, 0, 10000);
     }
 
     private static void messageQueue(){
@@ -108,7 +109,6 @@ public class Broker {
         BusinessEngine businessEngine = new BusinessEngine(portfolio, id);
 
         System.out.println("This com.broker.Broker has been assigned ID : " + id + " for this session");
-        System.out.println("This com.broker.Broker is now trading the following instruments...");
         System.out.println(portfolio.toString());
 
         RequestMarketData();
@@ -131,6 +131,7 @@ public class Broker {
                         else if (pair.getKey().get().get(0).getType() == "W"){
                             System.out.println("MARKET DATA SNAPSHOTS RECEIVED : " + pair.getKey().get().size());
                             for (int i = 0; i < pair.getKey().get().size(); i++){
+                                System.out.println("MARKET DATA SNAPSHOTS RECEIVED : " + pair.getKey().get().get(i).toFix());
                                 businessEngine.updateMarketMap(new MarketSnapshot(pair.getKey().get().get(i).getMessage()));
                             }
                             ArrayList<Order> orders = businessEngine.SMAInstruments();

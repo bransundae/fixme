@@ -37,6 +37,15 @@ public class Portfolio {
         return null;
     }
 
+    public void print(){
+        for (Stock s : portfolio) {
+            if (s.getSmaMap().isEmpty())
+                System.out.printf("STOCK: %S | PRICE: %f | HOLD %d\n", s.getName(), s.getPrice(), s.getHold());
+            else
+                System.out.printf("STOCK: %S | PRICE: %f | HOLD %d | SMADiff: %f\n", s.getName(), s.getPrice(), s.getHold(), s.getMaxDifference());
+        }
+    }
+
     @Override
     public String toString() {
 

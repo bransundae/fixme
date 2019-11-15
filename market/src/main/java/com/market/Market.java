@@ -72,7 +72,8 @@ public class Market {
         int random = (int)(Math.random() * ((1 - 0) + 1)) + 0;
 
         for (Stock stock : portfolio.getPortfolio()){
-            stock.setPrice(round(stock.getPrice() + fluc[random], 2));
+            if (!stock.getName().equalsIgnoreCase("FIAT"))
+                stock.setPrice(round(stock.getPrice() + fluc[random], 2));
         }
     }
 
@@ -82,12 +83,13 @@ public class Market {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                MarketSnapshot marketSnapshot = new MarketSnapshot(id, 500, "W", new ArrayList<String>(), true);
+                MarketSnapshot marketSnapshot = new MarketSnapshot(id, 500, "W", new ArrayList<String>());
                 randomizeStock();
                 for(Stock stock : portfolio.getPortfolio()){
                     stock.newSMAPeriod(SMAPeriod);
                     marketSnapshot.addStock(stock.toFix());
                 }
+                portfolio.print();
                 System.out.println("SENDING A MARKET SNAPSHOT UPDATE");
                 messageQueue.add(marketSnapshot);
                 SMAPeriod++;
@@ -154,14 +156,14 @@ public class Market {
                 if (portfolio.getStock(order.getStock()) != null){
                     //SESSION LEVEL REJECT
                     if (!order.isReady()){
-                        messageQueue.add(new Message(id, order.getSenderID(), "3", true));
+                        messageQueue.add(new Message(id, order.getSenderID(), "3"));
                         System.out.println("Session Level Reject");
                     }
                     //SESSION LEVEL VALIDATES
                     else {
                         if (order.isBuy()) {
                             //BUY ORDER WHERE BID IS LESS THAN  MARKET PRICE
-                            if (order.getBid() <= portfolio.getStock(order.getStock()).getPrice() - .03) {
+                            if (order.getBid() <= portfolio.getStock(order.getStock()).getPrice() - .05) {
                                 //TODO MARKET WILL SEARCH FOR BROKERS THAT WILL ACCEPT THE BID
                                 System.out.println("UNACCEPTABLE BID");
                             }
@@ -171,19 +173,16 @@ public class Market {
                                 if (portfolio.getStock(order.getStock()).getHold() >= order.getQuantity()) {
                                     portfolio.getStock("FIAT").modHold((int)(order.getQuantity() * order.getBid()));
                                     portfolio.getStock(order.getStock()).modHold(-(order.getQuantity()));
-                                    order.setDone(true);
+                                    order.setFragments(1);
                                     order.returnToSender("8");
                                     System.out.println("NEW BUY ORDER RECEIPT : " + order.toFix());
                                 }
                                 else {
-                                    order.setDone(true);
+                                    order.setFragments(1);
                                     order.returnToSender("j");
                                     System.out.println("NEW BUY ORDER REJECT : " + order.toFix());
                                 }
                                 messageQueue.add(order);
-                                /*System.out.println("Order Processed");
-                                System.out.println("This Market is now trading the following instruments...");
-                                System.out.println(portfolio.toString());*/
                             }
                         } else {
                             //SELL ORDER WHERE ASK IS GREATER THAN MARKET PRICE
@@ -195,16 +194,13 @@ public class Market {
                                 if (portfolio.getStock("FIAT").getHold() >= (order.getQuantity() * order.getBid())) {
                                     portfolio.getStock(order.getStock()).modHold(order.getQuantity());
                                     portfolio.getStock("FIAT").modHold(-(int)(order.getQuantity() * order.getBid()));
-                                    order.setDone(true);
+                                    order.setFragments(1);
                                     order.returnToSender("8");
                                 } else {
-                                    order.setDone(true);
+                                    order.setFragments(1);
                                     order.returnToSender("j");
                                 }
                                 messageQueue.add(order);
-                               /* System.out.println("Order Processed");
-                                System.out.println("This Market is now trading the following instruments...");
-                                System.out.println(portfolio.toString());*/
                             }
                         }
                     }

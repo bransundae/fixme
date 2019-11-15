@@ -6,22 +6,29 @@ public class Message {
 
     protected String message;
     protected String type;
+    protected String id;
     protected int senderID = -1;
     protected int recipientID = -1;
     protected String status;
-    protected boolean done = false;
+    //protected boolean done = false;
+    protected long timeStamp;
+    protected int fragments = 1;
     protected String checksum;
 
     public Message(String fixMessage){
         parseFix(fixMessage);
         this.message = fixMessage;
+        this.timeStamp = System.currentTimeMillis();
+        this.id = timeStamp +""+ senderID;
     }
 
-    public Message(int senderID, int recipientID, String type, boolean done){
+    public Message(int senderID, int recipientID, String type){
         this.senderID = senderID;
         this.recipientID = recipientID;
         this.type = type;
-        this.done = done;
+        //this.done = done;
+        this.timeStamp = System.currentTimeMillis();
+        this.id = timeStamp +""+ senderID;
         this.setMessage(this.toFix());
     }
 
@@ -29,19 +36,41 @@ public class Message {
 
     }
 
-    public boolean isDone() {
+    public void setFragments(int fragments) {
+        this.fragments = fragments;
+    }
+
+    public int getFragments() {
+        return fragments;
+    }
+
+    public void resetID(){
+        this.timeStamp = System.currentTimeMillis();
+        this.id = timeStamp +""+ senderID;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    /*public boolean isDone() {
         return done;
     }
 
     public void setDone(boolean done) {
         this.done = done;
-    }
+    }*/
 
     public void returnToSender(String responseType){
         int temp = this.senderID;
         this.senderID = this.recipientID;
         this.recipientID = temp;
         this.type = responseType;
+        resetID();
     }
 
     public void parseFix(String fixMessage){
@@ -101,12 +130,21 @@ public class Message {
                         checksum = tag[1];
                         break;
                         //STATUS
-                    case "39":
+                    /*case "39":
                         if (tag[1].equalsIgnoreCase("1")){
                             done = false;
                         } else {
                             done = true;
                         }
+                        break ;*/
+                        //ID
+                    case "66":
+                        id = tag[1];
+                        break;
+                        //FRAGMENTS
+                    case "68":
+                        fragments = Integer.parseInt(tag[1]);
+                        break;
                 }
             }
             else {
@@ -182,7 +220,7 @@ public class Message {
             toReturn += "56="+recipientID;
         }
 
-        if (done){
+        /*if (done){
             if (i > 0)
                 toReturn += soh;
             toReturn += "39=0";
@@ -190,12 +228,18 @@ public class Message {
             if (i > 0)
                 toReturn += soh;
             toReturn += "39=1";
-        }
+        }*/
 
         if (checksum != null){
             if (i > 0)
                 toReturn += soh;
             toReturn += "10="+checksum;
+        }
+
+        if (id != null){
+            if (i > 0)
+                toReturn += soh;
+            toReturn += "66="+id;
         }
         return toReturn;
     }

@@ -25,7 +25,8 @@ public class Router {
     private static Map<Future<Message>, ClientReader> futureMap = new HashMap<>();
 
     private static ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
-    private static ArrayList<Message> jobList = new ArrayList<>();
+    private static ArrayList<Message> messageQueue = new ArrayList<>();
+    private static ArrayList<Message> messageBatch = new ArrayList<>();
 
     private static ExecutorService executorService = Executors.newCachedThreadPool();
 
@@ -48,7 +49,7 @@ public class Router {
 
         while (it.hasNext()){
             Map.Entry<Integer, Socket> pair = it.next();
-            Message message = new Message(500, pair.getKey(), "0", true);
+            Message message = new Message(500, pair.getKey(), "0");
             message.setMessage(message.toFix());
             executorService.submit(new ClientWriter(pair.getValue(), message));
         }
@@ -59,10 +60,23 @@ public class Router {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                if (jobList.size() > 0) {
-                    executorService.submit(new ClientWriter(clientMap.get(jobList.get(0).getRecipientID()), jobList.get(0)));
-                    jobList.remove(0);
+                if (messageQueue.size() > 0) {
+                    executorService.submit(new ClientWriter(clientMap.get(messageQueue.get(0).getRecipientID()), messageQueue.get(0)));
+                    messageQueue.remove(0);
                 }
+            }
+        }, 0, 500);
+    }
+
+    private static void messageBatch(){
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                for (Message message : messageBatch) {
+                    executorService.submit(new ClientWriter(clientMap.get(message.getRecipientID()), message));
+                }
+                messageBatch.clear();
             }
         }, 0, 500);
     }
@@ -75,6 +89,7 @@ public class Router {
         futureMap.put(executorService.submit(marketReader), marketReader);
 
         messageQueue();
+        messageBatch();
 
         while (true){
             //Iterate through the futureMap and if a Callable has returned a completed Future then add the message to the job queue and remove the future - ClientReader pair
@@ -104,11 +119,12 @@ public class Router {
                                 Iterator<Map.Entry<Integer, MarketSnapshot>> iterator = marketSnapshotMap.entrySet().iterator();
                                 while (iterator.hasNext()) {
                                     Map.Entry<Integer, MarketSnapshot> itPair = iterator.next();
-                                    if (iterator.hasNext()) {
-                                        toSend.add((Message) new MarketSnapshot(itPair.getKey(), pair.getKey().get().getSenderID(), "W", itPair.getValue().getStockSnapshots(), true));
-                                    } else {
-                                        toSend.add((Message) new MarketSnapshot(itPair.getKey(), pair.getKey().get().getSenderID(), "W", itPair.getValue().getStockSnapshots(), true));
-                                    }
+                                    MarketSnapshot marketSnapshot = new MarketSnapshot(itPair.getKey(), pair.getKey().get().getSenderID(), "W", itPair.getValue().getStockSnapshots());
+                                    toSend.add((Message) marketSnapshot);
+                                }
+                                for (int i = 0; i < toSend.size(); i++){
+                                    toSend.get(i).setId(System.currentTimeMillis() + "" + 500);
+                                    toSend.get(i).setFragments(marketSnapshotMap.size());
                                 }
                             }
                             //Business Orders
@@ -122,12 +138,15 @@ public class Router {
                             if (pair.getKey().get().getType().equalsIgnoreCase("A")) {
                                 if (clientMap.get(pair.getKey().get().getSenderID()) == null) {
                                     clientMap.put(pair.getKey().get().getSenderID(), pair.getValue().getClient());
-                                    toSend.add(new Message(500, pair.getKey().get().getSenderID(), "0", true));
+                                    toSend.add(new Message(500, pair.getKey().get().getSenderID(), "0"));
                                 }
                             }
                         }
                         for(Message message : toSend) {
-                            jobList.add(message);
+                            if (message.getFragments() > 1)
+                                messageBatch.add(message);
+                            else
+                                messageQueue.add(message);
                         }
                     }
                     deadFutureList.add(pair.getKey());

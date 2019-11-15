@@ -65,23 +65,26 @@ public class ClientReader implements Callable {
         else {
             System.out.println("Checksum does not Validate, Faulty Receive");
         }
-        while (!this.order.isDone()){
+        int fragmentsCount = 1;
+        String id = this.order.getId();
+        while (fragmentsCount < this.order.getFragments()){
             //Blocking Socket call
             try {
                 in = new BufferedReader(new InputStreamReader(client.getInputStream()));
                 input = in.readLine();
                 this.order = new Order(input);
-                if (this.order.validateChecksum(order.toFix())) {
+                if (this.order.validateChecksum(order.toFix()) && this.order.getId().equalsIgnoreCase(id)) {
+                    fragmentsCount++;
                     messages.add(this.order);
                 }
                 else {
-                    System.out.println("Checksum does not Validate, Faulty Receive");
+                    System.out.println("Checksum does not Validate or ID's do not match on Message Fragments, Faulty Receive");
                 }
             } catch (SocketTimeoutException e){
-                System.out.println("Read from Client Failed Timeout");
+                System.out.println("Read from Client Failed Timeout Two");
                 return messages;
             } catch (IOException e){
-                System.out.println("Read from Client Failed IO");
+                System.out.println("Read from Client Failed IO Two");
                 return messages;
             }
         }

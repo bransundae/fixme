@@ -67,11 +67,8 @@ public class BusinessEngine {
         }
 
         for (int i = 0; i < orders.size(); i++){
-            if(i + 1 == orders.size()){
-                orders.get(i).setDone(true);
-            } else {
-                orders.get(i).setDone(true);
-            }
+            orders.get(i).setId(orders.get(i).getId());
+            orders.get(i).setFragments(orders.size());
         }
         return orders;
     }
