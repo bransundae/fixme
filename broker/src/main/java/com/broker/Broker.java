@@ -174,6 +174,15 @@ public class Broker {
                         }
                         //Message is an Order Accept
                         else if (order.getType() == "8"){
+                            if (order.isBuy()) {
+                                portfolio.getStock("FIAT").modHold(-(int) (order.getQuantity() * order.getBid()));
+                                portfolio.getStock(order.getStock()).modHold(order.getQuantity());
+                            }
+                            else {
+                                portfolio.getStock("FIAT").modHold((int) (order.getQuantity() * order.getBid()));
+                                portfolio.getStock(order.getStock()).modHold(-(order.getQuantity()));
+                            }
+
                             System.out.println("ORDER RECEIPT : " + order.toFix());
                         }
                         //Message is Market DataSnapShot

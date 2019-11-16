@@ -1,6 +1,8 @@
 package com.router;
 
+import com.core.MarketSnapshot;
 import com.core.Message;
+import com.core.Order;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -17,8 +19,6 @@ public class ClientReader implements Callable {
     private ServerSocket serverSocket;
 
     private Socket client;
-
-    private Message message;
 
     public ClientReader(ServerSocket serverSocket){
         this.serverSocket = serverSocket;
@@ -58,7 +58,6 @@ public class ClientReader implements Callable {
             System.out.println("New Connection From Client");
             in = new BufferedReader(new InputStreamReader(client.getInputStream()));
             input = in.readLine();
-            System.out.println(input);
         } catch (SocketTimeoutException e){
             return null;
         } catch (IOException e){
@@ -70,21 +69,51 @@ public class ClientReader implements Callable {
             return null;
         }
 
-        this.message = new Message(input);
+        Object message = new Message(input);
 
-        //If client ID does not exist then assign client an ID and store socket in HashMap
-        if (this.message.getType().equalsIgnoreCase("A")) {
-            Router.clientID++;
-            message.setSenderID(Router.clientID);
-        }
+        if (((Message)message).getType().equalsIgnoreCase("D")
+                || ((Message)message).getType().equalsIgnoreCase("j")
+                || ((Message)message).getType().equalsIgnoreCase("j")){
+            message = new Order(input);
+            if (((Order)message).validateChecksum()) {
+                System.out.println("Checksum Validates : " + ((Order) message).toFix());
+                return message;
+            }
+            else {
+                System.out.println("Checksum does not Validate, Faulty Receive");
+                return null;
+            }
 
-        if (this.message.validateChecksum(message.toFix())) {
-            System.out.println("Checksum Validates");
-            return this.message;
-        }
-        else {
-            System.out.println("Checksum does not Validate, Faulty Receive");
-            return null;
+        } else if (((Message)message).getType().equalsIgnoreCase("W")
+                || ((Message)message).getType().equalsIgnoreCase("Y")
+                || ((Message)message).getType().equalsIgnoreCase("V")){
+
+                message = new MarketSnapshot(input);
+            if (((MarketSnapshot)message).validateChecksum()) {
+                System.out.println("Checksum Validates : " + ((MarketSnapshot) message).toFix());
+                return message;
+            }
+            else {
+                System.out.println("Checksum does not Validate, Faulty Receive");
+                return null;
+            }
+
+        } else {
+
+            if (((Message)message).validateChecksum()) {
+                System.out.println("Checksum Validates : " + ((Message) message).toFix());
+                //If client ID does not exist then assign client an ID and store socket in HashMap
+                if (((Message)message).getType().equalsIgnoreCase("A")) {
+                    Router.clientID++;
+                    ((Message)message).setSenderID(Router.clientID);
+                }
+                return message;
+            }
+            else {
+                System.out.println("Checksum does not Validate, Faulty Receive");
+                return null;
+            }
+
         }
     }
 }

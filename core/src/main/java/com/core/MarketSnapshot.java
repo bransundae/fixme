@@ -16,12 +16,12 @@ public class MarketSnapshot extends Message {
 
     public MarketSnapshot(int senderID, int recipientID, String type, boolean done){
         super(senderID, recipientID, type);
-
         this.message = toFix();
     }
 
     public MarketSnapshot(String fixMessage){
         parseFix(fixMessage);
+        this.message = toFix();
     }
 
     public void setStockSnapshots(ArrayList<String> stockSnapshots) {

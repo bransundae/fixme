@@ -44,7 +44,7 @@ public class BusinessEngine {
             ArrayList<Order> temp = new ArrayList<>();
             Map.Entry<Integer, Portfolio> pair = it.next();
             for (Stock stock : pair.getValue().getPortfolio()){
-                if (stock.getMaxDifference() > 0.2 && !stock.getName().equalsIgnoreCase("FIAT")){
+                if (stock.getMaxDifference() > 0.5 && !stock.getName().equalsIgnoreCase("FIAT")){
                     int hold = calcBuyAmount(stock, 10);
                     if (hold > 0) {
                         System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "BUYING " + hold + " UNITS at " + stock.getPrice() + " per UNIT");

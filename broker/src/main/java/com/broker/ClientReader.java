@@ -57,7 +57,7 @@ public class ClientReader implements Callable {
 
         this.message = new Order(input);
 
-        if (this.message.validateChecksum(message.getMessage())) {
+        if (this.message.validateChecksum()) {
             messages.add(this.message);
         }
         else {

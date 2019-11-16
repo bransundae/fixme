@@ -15,10 +15,10 @@ public class Message {
     protected String checksum;
 
     public Message(String fixMessage){
-        parseFix(fixMessage);
-        this.message = fixMessage;
         this.timeStamp = System.currentTimeMillis();
         this.id = timeStamp +""+ senderID;
+        parseFix(fixMessage);
+        this.message = fixMessage;
     }
 
     public Message(int senderID, int recipientID, String type){
@@ -238,33 +238,69 @@ public class Message {
         return checksum;
     }
 
-    public String generateChecksum(String fixMessage){
+    public String generateChecksum(){
         String soh = "" + (char)1;
-        String arr[] = fixMessage.split(soh);
+        String arr[] = toFix().split(soh);
         long checksum = 0;
         for(int i = 0; i < arr.length; i++){
             String tag[] = arr[i].split("=");
             for (int j = 0; j < arr[i].length(); j++){
-                if (tag[0] != "10")
-                    checksum += (int)arr[i].charAt(j);
+                if (!tag[0].equalsIgnoreCase("10"))
+                    checksum += (long) arr[i].charAt(j);
+                else
+                    break;
             }
         }
-        checksum = 256 % checksum;
+        //checksum += arr.length - 1;
+        checksum %= 256;
 
-        if (checksum >= 100)
-            return "" + checksum;
-        else if (checksum >= 10)
-            return "0" + checksum;
-        else
-            return "00" + checksum;
-
+        if (checksum >= 100) {
+            System.out.println("Checksum: " + checksum);
+            this.checksum =  "" + checksum;
+        }
+        else if (checksum >= 10) {
+            System.out.println("Checksum: " + checksum);
+            this.checksum = "0" + checksum;
+        }
+        else {
+            System.out.println("Checksum: " + checksum);
+            this.checksum = "00" + checksum;
+        }
+        return this.checksum;
     }
 
-    public boolean validateChecksum(String fixMessage){
+    public boolean validateChecksum(){
         if (checksum != null){
-            if (generateChecksum(fixMessage).equalsIgnoreCase(checksum)) {
-                return true;
+            String soh = "" + (char)1;
+            String arr[] = toFix().split(soh);
+            long checksum = 0;
+            for(int i = 0; i < arr.length; i++){
+                String tag[] = arr[i].split("=");
+                for (int j = 0; j < arr[i].length(); j++){
+                    if (!tag[0].equalsIgnoreCase("10"))
+                        checksum += (long) arr[i].charAt(j);
+                    else
+                        break;
+                }
             }
+            //checksum += arr.length - 1;
+            checksum %= 256;
+
+            String compare = "";
+            if (checksum >= 100) {
+                System.out.println("Checksum: " + checksum);
+                compare =  "" + checksum;
+            }
+            else if (checksum >= 10) {
+                System.out.println("Checksum: " + checksum);
+                compare = "0" + checksum;
+            }
+            else {
+                System.out.println("Checksum: " + checksum);
+                compare = "00" + checksum;
+            }
+            if (compare.equalsIgnoreCase(this.checksum))
+                return true;
         }
         return false;
     }

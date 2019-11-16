@@ -19,9 +19,9 @@ public class Market {
     private static Socket socket;
     private static int SMAPeriod = 1;
 
-    private static ConcurrentHashMap<Future<ArrayList<Order>>, ClientReader> futureMap = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<Future<ArrayList<Message>>, ClientReader> futureMap = new ConcurrentHashMap<>();
     private static ArrayList<Message> messageQueue = new ArrayList<>();
-    private static ArrayList<Future<ArrayList<Order>>> deadFutureList = new ArrayList<>();
+    private static ArrayList<Future<ArrayList<Message>>> deadFutureList = new ArrayList<>();
     private static HashMap<String, ArrayList<Order>> orderMap = new HashMap<>();
     private static ArrayList<String> deadOrderList = new ArrayList<>();
 
@@ -43,9 +43,9 @@ public class Market {
         futureMap.put(executorService.submit(clientReader), clientReader);
 
         while (id == -1){
-            Iterator<Map.Entry<Future<ArrayList<Order>>, ClientReader>> it = futureMap.entrySet().iterator();
+            Iterator<Map.Entry<Future<ArrayList<Message>>, ClientReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
-                Map.Entry<Future<ArrayList<Order>>, ClientReader> pair = it.next();
+                Map.Entry<Future<ArrayList<Message>>, ClientReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey() != null){
                         if (pair.getKey().get() != null) {
@@ -131,20 +131,20 @@ public class Market {
         System.out.println("This Market has been assigned ID : " + id + " for this session");
 
         while (true){
-            Iterator<Map.Entry<Future<ArrayList<Order>>, ClientReader>> it = futureMap.entrySet().iterator();
+            Iterator<Map.Entry<Future<ArrayList<Message>>, ClientReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
-                Map.Entry<Future<ArrayList<Order>>, ClientReader> pair = it.next();
+                Map.Entry<Future<ArrayList<Message>>, ClientReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null){
                         //Message is not from server and therefore constitutes an order
                         if (pair.getKey().get().get(0).getSenderID() != 500) {
-                            for (Order order : pair.getKey().get()){
-                                if (orderMap.get(order.getId()) == null){
+                            for (Message message : pair.getKey().get()){
+                                if (orderMap.get(message.getId()) == null){
                                     ArrayList<Order> fragments = new ArrayList();
-                                    fragments.add(order);
-                                    orderMap.put(order.getId(), fragments);
+                                    fragments.add((Order) message);
+                                    orderMap.put(message.getId(), fragments);
                                 } else {
-                                    orderMap.get(order.getId()).add(order);
+                                    orderMap.get(message.getId()).add((Order) message);
                                 }
                             }
                         }
@@ -153,7 +153,7 @@ public class Market {
                 }
             }
 
-            for (Future<ArrayList<Order>> f : deadFutureList) {
+            for (Future<ArrayList<Message>> f : deadFutureList) {
                 ClientReader clientReader = new ClientReader(socket);
                 futureMap.put(executorService.submit(clientReader), clientReader);
                 futureMap.remove(f);

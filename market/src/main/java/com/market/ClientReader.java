@@ -20,7 +20,7 @@ import java.util.concurrent.Callable;
 public class ClientReader implements Callable {
 
     private Socket client;
-    private Order order;
+    private Message message;
 
     public ClientReader(Socket client) {
         this.client = client;
@@ -57,10 +57,11 @@ public class ClientReader implements Callable {
             return null;
         }
 
-        this.order = new Order(input);
+        this.message = new Message(input);
+        System.out.println("MESSAGE RECIEVED: " + message.toFix());
 
-        if (this.order.validateChecksum(order.toFix())) {
-            messages.add(this.order);
+        if (this.message.validateChecksum()) {
+            messages.add(this.message);
         }
         else {
             System.out.println("Checksum does not Validate, Faulty Receive");

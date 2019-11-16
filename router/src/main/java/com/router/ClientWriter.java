@@ -24,7 +24,7 @@ public class ClientWriter implements Callable {
     @Override
     public Object call() throws Exception {
         PrintWriter out = null;
-        this.message.setChecksum(this.message.generateChecksum(this.message.toFix()));
+        this.message.generateChecksum();
         try {
             out = new PrintWriter(client.getOutputStream(), true);
             out.println(message.toFix());
