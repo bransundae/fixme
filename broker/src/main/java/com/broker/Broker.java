@@ -146,13 +146,20 @@ public class Broker {
             while (it.hasNext()){
                 Map.Entry<Future<Message>, ThreadReader> pair = it.next();
                 if (pair.getKey().isDone()){
-                    if (pair.getKey().get() != null){
-                        if (orderMap.get(pair.getKey().get().getId()) == null){
-                            ArrayList<Message> fragments = new ArrayList();
-                            fragments.add(pair.getKey().get());
-                            orderMap.put((pair.getKey().get()).getId(), fragments);
+                    if (pair.getKey().get() != null) {
+                        if (pair.getKey().get().getSenderID() != 500){
+                            if (orderMap.get(pair.getKey().get().getId()) == null) {
+                                ArrayList<Message> fragments = new ArrayList();
+                                fragments.add(pair.getKey().get());
+                                orderMap.put((pair.getKey().get()).getId(), fragments);
+                            } else {
+                                orderMap.get(pair.getKey().get().getId()).add(pair.getKey().get());
+                            }
                         } else {
-                            orderMap.get(pair.getKey().get().getId()).add(pair.getKey().get());
+                            if (pair.getKey().get().getType().equalsIgnoreCase("0"))
+                                messageQueue.add(new Message(id, 500, "0"));
+                            else if (pair.getKey().get().getType().equalsIgnoreCase("A"))
+                                socket = connect();
                         }
                     }
                     deadFutureList.add(pair.getKey());

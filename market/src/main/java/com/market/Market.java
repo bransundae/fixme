@@ -155,7 +155,10 @@ public class Market {
                                 orderMap.get(message.getId()).add((Order) message);
                             }
                         } else {
-                            messageQueue.add(new Message(id, 500, "0"));
+                            if (pair.getKey().get().getType().equalsIgnoreCase("0"))
+                                messageQueue.add(new Message(id, 500, "0"));
+                            else if (pair.getKey().get().getType().equalsIgnoreCase("A"))
+                                socket = connect();
                         }
                     }
                     deadFutureList.add(pair.getKey());

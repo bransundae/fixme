@@ -159,6 +159,8 @@ public class Router {
                                     clientMap.put(pair.getKey().get().getSenderID(), pair.getValue().getClient());
                                     toSend.add(new Message(500, pair.getKey().get().getSenderID(), "0"));
                                 }
+                            } else {
+                                executorService.submit(new ThreadWriter(pair.getValue().getClient(), new Message(500, -1, "A")));
                             }
                         }
                         for(Message message : toSend) {
