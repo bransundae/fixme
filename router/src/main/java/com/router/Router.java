@@ -3,7 +3,7 @@ package com.router;
 import com.core.MarketSnapshot;
 import com.core.Message;
 import com.core.Order;
-import com.core.Portfolio;
+import com.core.io.ThreadWriter;
 
 import java.io.*;
 import java.net.ServerSocket;
@@ -17,12 +17,12 @@ public class Router {
     private static ServerSocket broker;
     private static ServerSocket market;
 
-    private static ClientReader marketReader;
-    private static ClientReader brokerReader;
+    private static ServerReader marketReader;
+    private static ServerReader brokerReader;
 
     private static Map<Integer, Socket> clientMap = new HashMap<>();
     private static Map<Integer, MarketSnapshot> marketSnapshotMap = new HashMap<>();
-    private static Map<Future<Message>, ClientReader> futureMap = new HashMap<>();
+    private static Map<Future<Message>, ServerReader> futureMap = new HashMap<>();
 
     private static ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
     private static ArrayList<Message> messageQueue = new ArrayList<>();
@@ -39,8 +39,8 @@ public class Router {
         broker = new ServerSocket(5000);
         market = new ServerSocket(5001);
 
-        brokerReader = new ClientReader(broker);
-        marketReader = new ClientReader(market);
+        brokerReader = new ServerReader(broker);
+        marketReader = new ServerReader(market);
     }
 
     private static void heartBeat() {
@@ -51,7 +51,7 @@ public class Router {
             Map.Entry<Integer, Socket> pair = it.next();
             Message message = new Message(500, pair.getKey(), "0");
             message.setMessage(message.toFix());
-            executorService.submit(new ClientWriter(pair.getValue(), message));
+            executorService.submit(new ThreadWriter(pair.getValue(), message));
         }
     }
 
@@ -61,7 +61,7 @@ public class Router {
             @Override
             public void run() {
                 if (messageQueue.size() > 0) {
-                    executorService.submit(new ClientWriter(clientMap.get(messageQueue.get(0).getRecipientID()), messageQueue.get(0)));
+                    executorService.submit(new ThreadWriter(clientMap.get(messageQueue.get(0).getRecipientID()), messageQueue.get(0)));
                     messageQueue.remove(0);
                 }
             }
@@ -74,7 +74,7 @@ public class Router {
             @Override
             public void run() {
                 for (Message message : messageBatch)
-                    executorService.submit(new ClientWriter(clientMap.get(message.getRecipientID()), message));
+                    executorService.submit(new ThreadWriter(clientMap.get(message.getRecipientID()), message));
                 messageBatch.clear();
             }
         }, 0, 500);
@@ -91,11 +91,11 @@ public class Router {
         messageBatch();
 
         while (true){
-            //Iterate through the futureMap and if a Callable has returned a completed Future then add the message to the job queue and remove the future - ClientReader pair
-            //If the sender of the message is not registered then store the socket from the ClientReader first
-            Iterator<Map.Entry<Future<Message>, ClientReader>> it = futureMap.entrySet().iterator();
+            //Iterate through the futureMap and if a Callable has returned a completed Future then add the message to the job queue and remove the future - ServerReader pair
+            //If the sender of the message is not registered then store the socket from the ServerReader first
+            Iterator<Map.Entry<Future<Message>, ServerReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
-                Map.Entry<Future<Message>, ClientReader> pair = it.next();
+                Map.Entry<Future<Message>, ServerReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null) {
                         ArrayList<Message> toSend = new ArrayList<>();

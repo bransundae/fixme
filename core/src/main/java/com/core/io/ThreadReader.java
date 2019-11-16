@@ -1,9 +1,12 @@
-package com.router;
+package com.core.io;
 
 import com.core.MarketSnapshot;
 import com.core.Message;
 import com.core.Order;
+import com.core.Portfolio;
 
+import javax.sound.sampled.Port;
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,56 +15,41 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
 import java.util.concurrent.Callable;
 
-public class ClientReader implements Callable {
-
-    private ServerSocket serverSocket;
+public class ThreadReader implements Callable {
 
     private Socket client;
 
-    public ClientReader(ServerSocket serverSocket){
-        this.serverSocket = serverSocket;
+    public ThreadReader(Socket client) {
+        this.client = client;
 
         try {
-            this.serverSocket.setSoTimeout(2000);
+            this.client.setSoTimeout(2000);
         } catch (SocketException e){
             System.out.println("Cannot set Timeout on this Socket");
         }
     }
 
-    public ClientReader(Socket client) {
-        this.client = client;
-    }
-
     public Socket getClient() {
-        return this.client;
-    }
-
-    public int getPort(){
-        return this.serverSocket.getLocalPort();
-    }
-
-    public ServerSocket getServerSocket() {
-        return serverSocket;
+        return client;
     }
 
     @Override
     public Object call() throws Exception {
         String input = "";
         BufferedReader in = null;
-        PrintWriter out = null;
+        ArrayList<Message> messages = new ArrayList<>();
 
         //Blocking Socket call
         try {
-            this.client = serverSocket.accept();
-            System.out.println("New Connection From Client");
             in = new BufferedReader(new InputStreamReader(client.getInputStream()));
             input = in.readLine();
         } catch (SocketTimeoutException e){
             return null;
         } catch (IOException e){
-            System.out.println("Read from Router Failed");
+            System.out.println("Read from Client Failed");
             return null;
         }
 
@@ -88,7 +76,7 @@ public class ClientReader implements Callable {
                 || ((Message)message).getType().equalsIgnoreCase("Y")
                 || ((Message)message).getType().equalsIgnoreCase("V")){
 
-                message = new MarketSnapshot(input);
+            message = new MarketSnapshot(input);
             if (((MarketSnapshot)message).validateChecksum()) {
                 System.out.println("Checksum Validates : " + ((MarketSnapshot) message).toFix());
                 return message;
@@ -99,14 +87,8 @@ public class ClientReader implements Callable {
             }
 
         } else {
-
             if (((Message)message).validateChecksum()) {
                 System.out.println("Checksum Validates : " + ((Message) message).toFix());
-                //If client ID does not exist then assign client an ID and store socket in HashMap
-                if (((Message)message).getType().equalsIgnoreCase("A")) {
-                    Router.clientID++;
-                    ((Message)message).setSenderID(Router.clientID);
-                }
                 return message;
             }
             else {

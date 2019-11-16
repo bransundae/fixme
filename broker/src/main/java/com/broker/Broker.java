@@ -1,14 +1,11 @@
 package com.broker;
 
-import com.broker.ClientReader;
-import com.broker.ClientWriter;
 import com.core.*;
+import com.core.io.ThreadReader;
+import com.core.io.ThreadWriter;
+import org.graalvm.compiler.core.common.type.ArithmeticOpTable;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.lang.reflect.Array;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.*;
@@ -18,9 +15,9 @@ public class Broker {
     private static int id = -1;
     private static Socket socket;
     private static ExecutorService executorService = Executors.newCachedThreadPool();
-    private static ConcurrentHashMap<Future<ArrayList<Message>>, ClientReader> futureMap = new ConcurrentHashMap<>();
-    private static ArrayList<Future<ArrayList<Message>>> deadFutureList = new ArrayList<>();
-    private static HashMap<String, ArrayList<Order>> orderMap = new HashMap<>();
+    private static ConcurrentHashMap<Future<Message>, ThreadReader> futureMap = new ConcurrentHashMap<>();
+    private static ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
+    private static HashMap<String, ArrayList<Message>> orderMap = new HashMap<>();
     private static ArrayList<String> deadOrderList = new ArrayList<>();
     private static ArrayList<Message> messageQueue = new ArrayList<>();
 
@@ -36,21 +33,21 @@ public class Broker {
         //Create new Socket and send connection request to router on separate Thread
         Socket socket = new Socket("localhost", 5000);
 
-        executorService.submit(new ClientWriter(socket, new Message("35=A")));
+        executorService.submit(new ThreadWriter(socket, new Message("35=A")));
 
-        ClientReader clientReader = new ClientReader(socket);
-        futureMap.put(executorService.submit(clientReader), clientReader);
+        ThreadReader threadReader = new ThreadReader(socket);
+        futureMap.put(executorService.submit(threadReader), threadReader);
 
         while (id == -1){
-            Iterator<Map.Entry<Future<ArrayList<Message>>, ClientReader>> it = futureMap.entrySet().iterator();
+            Iterator<Map.Entry<Future<Message>, ThreadReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
-                Map.Entry<Future<ArrayList<Message>>, ClientReader> pair = it.next();
+                Map.Entry<Future<Message>, ThreadReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey() != null){
                         if (pair.getKey().get() != null) {
-                            if (pair.getKey().get().get(0).getSenderID() == 500 && pair.getKey().get().get(0).getMessage() != null) {
+                            if (pair.getKey().get().getSenderID() == 500 && pair.getKey().get().getMessage() != null) {
                                 try {
-                                    id = pair.getKey().get().get(0).getRecipientID();
+                                    id = pair.getKey().get().getRecipientID();
                                 } catch (NumberFormatException e) {
                                     System.out.println("Router Attempted to assign an Invalid ID");
                                     System.exit(-1);
@@ -80,9 +77,9 @@ public class Broker {
                 System.out.println("This Broker is currently trading the following instruments...");
                 portfolio.print();
                 System.out.println("REQUESTING A MARKET SNAPSHOT UPDATE");
-                executorService.submit(new ClientWriter(socket, message));
-                ClientReader clientReader = new ClientReader(socket);
-                futureMap.put(executorService.submit(clientReader), clientReader);
+                executorService.submit(new ThreadWriter(socket, message));
+                ThreadReader threadReader = new ThreadReader(socket);
+                futureMap.put(executorService.submit(threadReader), threadReader);
             }
         }, 0, 10000);
     }
@@ -113,9 +110,9 @@ public class Broker {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    executorService.submit(new ClientWriter(socket, messageQueue.get(0)));
-                    ClientReader clientReader = new ClientReader(socket);
-                    futureMap.put(executorService.submit(new ClientReader(socket)), clientReader);
+                    executorService.submit(new ThreadWriter(socket, messageQueue.get(0)));
+                    ThreadReader threadReader = new ThreadReader(socket);
+                    futureMap.put(executorService.submit(new ThreadReader(socket)), threadReader);
                     messageQueue.remove(0);
                 }
             }
@@ -134,46 +131,47 @@ public class Broker {
         Trade();
 
         while (true){
-            Iterator<Map.Entry<Future<ArrayList<Message>>, ClientReader>> it = futureMap.entrySet().iterator();
+            Iterator<Map.Entry<Future<Message>, ThreadReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
-                Map.Entry<Future<ArrayList<Message>>, ClientReader> pair = it.next();
+                Map.Entry<Future<Message>, ThreadReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null){
-                        if (orderMap.get(pair.getKey().get().get(0).getId()) == null){
-                            ArrayList<Order> fragments = new ArrayList();
-                            fragments.add((Order)pair.getKey().get().get(0));
-                            orderMap.put(pair.getKey().get().get(0).getId(), fragments);
+                        if (orderMap.get(pair.getKey().get().getId()) == null){
+                            ArrayList<Message> fragments = new ArrayList();
+                            fragments.add(pair.getKey().get());
+                            orderMap.put((pair.getKey().get()).getId(), fragments);
                         } else {
-                            orderMap.get(pair.getKey().get().get(0).getId()).add((Order)pair.getKey().get().get(0));
+                            orderMap.get(pair.getKey().get().getId()).add(pair.getKey().get());
                         }
                     }
                     deadFutureList.add(pair.getKey());
                 }
             }
 
-            for (Future<ArrayList<Message>> f : deadFutureList) {
-                ClientReader clientReader = new ClientReader(socket);
-                futureMap.put(executorService.submit(clientReader), clientReader);
+            for (Future<Message> f : deadFutureList) {
+                ThreadReader threadReader = new ThreadReader(socket);
+                futureMap.put(executorService.submit(threadReader), threadReader);
                 futureMap.remove(f);
             }
             if (!deadFutureList.isEmpty())
                 deadFutureList.clear();
 
 
-            Iterator<Map.Entry<String, ArrayList<Order>>> orderMapIterator = orderMap.entrySet().iterator();
+            Iterator<Map.Entry<String, ArrayList<Message>>> orderMapIterator = orderMap.entrySet().iterator();
             while (orderMapIterator.hasNext()) {
-                Map.Entry<String, ArrayList<Order>> pair = orderMapIterator.next();
+                Map.Entry<String, ArrayList<Message>> pair = orderMapIterator.next();
                 //IF ALL FRAGMENTS HAVE BEEN RECEIVED FOR THIS MESSAGE ID
                 if (pair.getValue().size() == pair.getValue().get(0).getFragments()) {
                     for (int i = 0; i < pair.getValue().size(); i++){
-                        Order order = pair.getValue().get(i);
-
+                        Message message = pair.getValue().get(i);
                         //Message is an Order Reject
-                        if (order.getType() == "j"){
+                        if (message.getType() == "j"){
+                            Order order = (Order)message;
                             System.out.println("ORDER REJECT : " + order.toFix());
                         }
                         //Message is an Order Accept
-                        else if (order.getType() == "8"){
+                        else if (message.getType() == "8"){
+                            Order order = (Order)message;
                             if (order.isBuy()) {
                                 portfolio.getStock("FIAT").modHold(-(int) (order.getQuantity() * order.getBid()));
                                 portfolio.getStock(order.getStock()).modHold(order.getQuantity());
@@ -182,16 +180,16 @@ public class Broker {
                                 portfolio.getStock("FIAT").modHold((int) (order.getQuantity() * order.getBid()));
                                 portfolio.getStock(order.getStock()).modHold(-(order.getQuantity()));
                             }
-
                             System.out.println("ORDER RECEIPT : " + order.toFix());
                         }
                         //Message is Market DataSnapShot
-                        else if (order.getType() == "W"){
-                            System.out.println("MARKET DATA SNAPSHOTS RECEIVED : " + order.toFix());
-                            businessEngine.updateMarketMap(new MarketSnapshot(order.getMessage()));
+                        else if (message.getType() == "W"){
+                            MarketSnapshot marketSnapshot = (MarketSnapshot)message;
+                            System.out.println("MARKET DATA SNAPSHOTS RECEIVED : " + marketSnapshot.toFix());
+                            businessEngine.updateMarketMap(marketSnapshot);
                         }
                         //Message is a Market DataSnapshot Reject
-                        else if (order.getType() == "Y"){
+                        else if (message.getType() == "Y"){
                             //TODO: Handle Rejects
                         }
                     }

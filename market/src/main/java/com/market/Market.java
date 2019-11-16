@@ -1,12 +1,11 @@
 package com.market;
 
-import com.market.ClientWriter;
+import com.core.io.ThreadReader;
+import com.core.io.ThreadWriter;
 import com.core.*;
-import org.graalvm.compiler.core.common.type.ArithmeticOpTable;
 
 import java.io.IOException;
 import java.lang.Math;
-import java.lang.reflect.Array;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.*;
@@ -19,9 +18,9 @@ public class Market {
     private static Socket socket;
     private static int SMAPeriod = 1;
 
-    private static ConcurrentHashMap<Future<ArrayList<Message>>, ClientReader> futureMap = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<Future<Message>, ThreadReader> futureMap = new ConcurrentHashMap<>();
     private static ArrayList<Message> messageQueue = new ArrayList<>();
-    private static ArrayList<Future<ArrayList<Message>>> deadFutureList = new ArrayList<>();
+    private static ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
     private static HashMap<String, ArrayList<Order>> orderMap = new HashMap<>();
     private static ArrayList<String> deadOrderList = new ArrayList<>();
 
@@ -37,21 +36,21 @@ public class Market {
         //Create new Socket and send connection request to router on separate Thread
         Socket socket = new Socket("localhost", 5001);
 
-        executorService.submit(new ClientWriter(socket, new Message("35=A")));
+        executorService.submit(new ThreadWriter(socket, new Message("35=A")));
 
-        ClientReader clientReader = new ClientReader(socket);
-        futureMap.put(executorService.submit(clientReader), clientReader);
+        ThreadReader threadReader = new ThreadReader(socket);
+        futureMap.put(executorService.submit(threadReader), threadReader);
 
         while (id == -1){
-            Iterator<Map.Entry<Future<ArrayList<Message>>, ClientReader>> it = futureMap.entrySet().iterator();
+            Iterator<Map.Entry<Future<Message>, ThreadReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
-                Map.Entry<Future<ArrayList<Message>>, ClientReader> pair = it.next();
+                Map.Entry<Future<Message>, ThreadReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey() != null){
                         if (pair.getKey().get() != null) {
-                            if (pair.getKey().get().get(0).getSenderID() == 500 && pair.getKey().get().get(0).getMessage() != null) {
+                            if (pair.getKey().get().getSenderID() == 500 && pair.getKey().get().getMessage() != null) {
                                 try {
-                                    id = pair.getKey().get().get(0).getRecipientID();
+                                    id = pair.getKey().get().getRecipientID();
                                 } catch (NumberFormatException e) {
                                     System.out.println("Router Attempted to assign an Invalid ID");
                                     System.exit(-1);
@@ -114,9 +113,9 @@ public class Market {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    executorService.submit(new ClientWriter(socket, messageQueue.get(0)));
-                    ClientReader clientReader = new ClientReader(socket);
-                    futureMap.put(executorService.submit(new ClientReader(socket)), clientReader);
+                    executorService.submit(new ThreadWriter(socket, messageQueue.get(0)));
+                    ThreadReader threadReader = new ThreadReader(socket);
+                    futureMap.put(executorService.submit(new ThreadReader(socket)), threadReader);
                     messageQueue.remove(0);
                 }
             }
@@ -131,21 +130,20 @@ public class Market {
         System.out.println("This Market has been assigned ID : " + id + " for this session");
 
         while (true){
-            Iterator<Map.Entry<Future<ArrayList<Message>>, ClientReader>> it = futureMap.entrySet().iterator();
+            Iterator<Map.Entry<Future<Message>, ThreadReader>> it = futureMap.entrySet().iterator();
             while (it.hasNext()){
-                Map.Entry<Future<ArrayList<Message>>, ClientReader> pair = it.next();
+                Map.Entry<Future<Message>, ThreadReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null){
                         //Message is not from server and therefore constitutes an order
-                        if (pair.getKey().get().get(0).getSenderID() != 500) {
-                            for (Message message : pair.getKey().get()){
-                                if (orderMap.get(message.getId()) == null){
-                                    ArrayList<Order> fragments = new ArrayList();
-                                    fragments.add((Order) message);
-                                    orderMap.put(message.getId(), fragments);
-                                } else {
-                                    orderMap.get(message.getId()).add((Order) message);
-                                }
+                        if (pair.getKey().get().getSenderID() != 500) {
+                            Message message = pair.getKey().get();
+                            if (orderMap.get(message.getId()) == null){
+                                ArrayList<Order> fragments = new ArrayList();
+                                fragments.add((Order) message);
+                                orderMap.put(message.getId(), fragments);
+                            } else {
+                                orderMap.get(message.getId()).add((Order) message);
                             }
                         }
                     }
@@ -153,9 +151,9 @@ public class Market {
                 }
             }
 
-            for (Future<ArrayList<Message>> f : deadFutureList) {
-                ClientReader clientReader = new ClientReader(socket);
-                futureMap.put(executorService.submit(clientReader), clientReader);
+            for (Future<Message> f : deadFutureList) {
+                ThreadReader threadReader = new ThreadReader(socket);
+                futureMap.put(executorService.submit(threadReader), threadReader);
                 futureMap.remove(f);
             }
             if (!deadFutureList.isEmpty())
