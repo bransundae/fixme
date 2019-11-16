@@ -2,9 +2,11 @@ package com.market;
 
 import com.market.ClientWriter;
 import com.core.*;
+import org.graalvm.compiler.core.common.type.ArithmeticOpTable;
 
 import java.io.IOException;
 import java.lang.Math;
+import java.lang.reflect.Array;
 import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.*;
@@ -20,7 +22,8 @@ public class Market {
     private static ConcurrentHashMap<Future<ArrayList<Order>>, ClientReader> futureMap = new ConcurrentHashMap<>();
     private static ArrayList<Message> messageQueue = new ArrayList<>();
     private static ArrayList<Future<ArrayList<Order>>> deadFutureList = new ArrayList<>();
-    private static ArrayList<Order> orderList = new ArrayList<>();
+    private static HashMap<String, ArrayList<Order>> orderMap = new HashMap<>();
+    private static ArrayList<String> deadOrderList = new ArrayList<>();
 
     private static ExecutorService executorService = Executors.newCachedThreadPool();
 
@@ -134,9 +137,17 @@ public class Market {
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null){
                         //Message is not from server and therefore constitutes an order
-                        if (pair.getKey().get().get(0).getSenderID() != 500)
-                            for (Order order : pair.getKey().get())
-                                orderList.add(order);
+                        if (pair.getKey().get().get(0).getSenderID() != 500) {
+                            for (Order order : pair.getKey().get()){
+                                if (orderMap.get(order.getId()) == null){
+                                    ArrayList<Order> fragments = new ArrayList();
+                                    fragments.add(order);
+                                    orderMap.put(order.getId(), fragments);
+                                } else {
+                                    orderMap.get(order.getId()).add(order);
+                                }
+                            }
+                        }
                     }
                     deadFutureList.add(pair.getKey());
                 }
@@ -151,62 +162,76 @@ public class Market {
                 deadFutureList.clear();
 
             //Business Logic
-            for (int i = 0; i < orderList.size(); i++){
-                Order order = orderList.get(i);
-                if (portfolio.getStock(order.getStock()) != null){
-                    //SESSION LEVEL REJECT
-                    if (!order.isReady()){
-                        messageQueue.add(new Message(id, order.getSenderID(), "3"));
-                        System.out.println("Session Level Reject");
-                    }
-                    //SESSION LEVEL VALIDATES
-                    else {
-                        if (order.isBuy()) {
-                            //BUY ORDER WHERE BID IS LESS THAN  MARKET PRICE
-                            if (order.getBid() <= portfolio.getStock(order.getStock()).getPrice() - .05) {
-                                //TODO MARKET WILL SEARCH FOR BROKERS THAT WILL ACCEPT THE BID
-                                System.out.println("UNACCEPTABLE BID");
+            Iterator<Map.Entry<String, ArrayList<Order>>> orderMapIterator = orderMap.entrySet().iterator();
+            while (orderMapIterator.hasNext()){
+                Map.Entry<String, ArrayList<Order>> pair = orderMapIterator.next();
+                //IF ALL FRAGMENTS HAVE BEEN RECEIVED FOR THIS MESSAGE ID
+                if (pair.getValue().size() == pair.getValue().get(0).getFragments()){
+                    for (int i = 0; i < pair.getValue().size(); i++){
+                        Order order = pair.getValue().get(i);
+                        if (portfolio.getStock(order.getStock()) != null){
+                            //SESSION LEVEL REJECT
+                            if (!order.isReady()){
+                                messageQueue.add(new Message(id, order.getSenderID(), "3"));
+                                System.out.println("Session Level Reject");
                             }
-                            //BUY ORDER WHERE BID IS GREATER THAN OR EQUAL TO MARKET PRICE
+                            //SESSION LEVEL VALIDATES
                             else {
-                                //MARKET HAS THE AMOUNT OF STOCK REQUESTED
-                                if (portfolio.getStock(order.getStock()).getHold() >= order.getQuantity()) {
-                                    portfolio.getStock("FIAT").modHold((int)(order.getQuantity() * order.getBid()));
-                                    portfolio.getStock(order.getStock()).modHold(-(order.getQuantity()));
-                                    order.setFragments(1);
-                                    order.returnToSender("8");
-                                    System.out.println("NEW BUY ORDER RECEIPT : " + order.toFix());
-                                }
-                                else {
-                                    order.setFragments(1);
-                                    order.returnToSender("j");
-                                    System.out.println("NEW BUY ORDER REJECT : " + order.toFix());
-                                }
-                                messageQueue.add(order);
-                            }
-                        } else {
-                            //SELL ORDER WHERE ASK IS GREATER THAN MARKET PRICE
-                            if (order.getBid() >= portfolio.getStock(order.getStock()).getPrice()) {
-                                //TODO MARKET WILL SEARCH FOR BUYERS WILLING TO ACCEPT BID
-                            }
-                            //SELL ORDER WHERE ASK IS LESS THAN OR EQUAL MARKET PRICE
-                            else {
-                                if (portfolio.getStock("FIAT").getHold() >= (order.getQuantity() * order.getBid())) {
-                                    portfolio.getStock(order.getStock()).modHold(order.getQuantity());
-                                    portfolio.getStock("FIAT").modHold(-(int)(order.getQuantity() * order.getBid()));
-                                    order.setFragments(1);
-                                    order.returnToSender("8");
+                                if (order.isBuy()) {
+                                    //BUY ORDER WHERE BID IS LESS THAN  MARKET PRICE
+                                    if (order.getBid() <= portfolio.getStock(order.getStock()).getPrice() - .05) {
+                                        //TODO MARKET WILL SEARCH FOR BROKERS THAT WILL ACCEPT THE BID
+                                        System.out.println("UNACCEPTABLE BID : " + order.toFix());
+                                    }
+                                    //BUY ORDER WHERE BID IS GREATER THAN OR EQUAL TO MARKET PRICE
+                                    else {
+                                        //MARKET HAS THE AMOUNT OF STOCK REQUESTED
+                                        if (portfolio.getStock(order.getStock()).getHold() >= order.getQuantity()) {
+                                            portfolio.getStock("FIAT").modHold((int)(order.getQuantity() * order.getBid()));
+                                            portfolio.getStock(order.getStock()).modHold(-(order.getQuantity()));
+                                            order.setFragments(1);
+                                            order.returnToSender("8");
+                                            System.out.println("NEW BUY ORDER RECEIPT : " + order.toFix());
+                                        }
+                                        else {
+                                            order.setFragments(1);
+                                            order.returnToSender("j");
+                                            System.out.println("NEW BUY ORDER REJECT : " + order.toFix());
+                                        }
+                                        messageQueue.add(order);
+                                    }
                                 } else {
-                                    order.setFragments(1);
-                                    order.returnToSender("j");
+                                    //SELL ORDER WHERE ASK IS GREATER THAN MARKET PRICE
+                                    if (order.getBid() >= portfolio.getStock(order.getStock()).getPrice()) {
+                                        //TODO MARKET WILL SEARCH FOR BUYERS WILLING TO ACCEPT BID
+                                    }
+                                    //SELL ORDER WHERE ASK IS LESS THAN OR EQUAL MARKET PRICE
+                                    else {
+                                        if (portfolio.getStock("FIAT").getHold() >= (order.getQuantity() * order.getBid())) {
+                                            portfolio.getStock(order.getStock()).modHold(order.getQuantity());
+                                            portfolio.getStock("FIAT").modHold(-(int)(order.getQuantity() * order.getBid()));
+                                            order.setFragments(1);
+                                            order.returnToSender("8");
+                                        } else {
+                                            order.setFragments(1);
+                                            order.returnToSender("j");
+                                        }
+                                        messageQueue.add(order);
+                                    }
                                 }
-                                messageQueue.add(order);
                             }
                         }
                     }
+                    deadOrderList.add(pair.getKey());
                 }
             }
-            orderList.clear();
+
+            for (String id : deadOrderList){
+                orderMap.remove(id);
+            }
+            if (!deadOrderList.isEmpty())
+                deadOrderList.clear();
+
         }
     }
 }

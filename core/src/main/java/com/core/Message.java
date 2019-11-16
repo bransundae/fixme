@@ -10,7 +10,6 @@ public class Message {
     protected int senderID = -1;
     protected int recipientID = -1;
     protected String status;
-    //protected boolean done = false;
     protected long timeStamp;
     protected int fragments = 1;
     protected String checksum;
@@ -26,7 +25,6 @@ public class Message {
         this.senderID = senderID;
         this.recipientID = recipientID;
         this.type = type;
-        //this.done = done;
         this.timeStamp = System.currentTimeMillis();
         this.id = timeStamp +""+ senderID;
         this.setMessage(this.toFix());
@@ -56,14 +54,6 @@ public class Message {
     public void setId(String id) {
         this.id = id;
     }
-
-    /*public boolean isDone() {
-        return done;
-    }
-
-    public void setDone(boolean done) {
-        this.done = done;
-    }*/
 
     public void returnToSender(String responseType){
         int temp = this.senderID;
@@ -220,16 +210,6 @@ public class Message {
             toReturn += "56="+recipientID;
         }
 
-        /*if (done){
-            if (i > 0)
-                toReturn += soh;
-            toReturn += "39=0";
-        } else{
-            if (i > 0)
-                toReturn += soh;
-            toReturn += "39=1";
-        }*/
-
         if (checksum != null){
             if (i > 0)
                 toReturn += soh;
@@ -240,6 +220,12 @@ public class Message {
             if (i > 0)
                 toReturn += soh;
             toReturn += "66="+id;
+        }
+
+        if (fragments != -1){
+            if (i > 0)
+                toReturn += soh;
+            toReturn += "68="+fragments;
         }
         return toReturn;
     }

@@ -20,8 +20,11 @@ public class Broker {
     private static ExecutorService executorService = Executors.newCachedThreadPool();
     private static ConcurrentHashMap<Future<ArrayList<Message>>, ClientReader> futureMap = new ConcurrentHashMap<>();
     private static ArrayList<Future<ArrayList<Message>>> deadFutureList = new ArrayList<>();
-    private static ArrayList<Order> orderList = new ArrayList<>();
+    private static HashMap<String, ArrayList<Order>> orderMap = new HashMap<>();
+    private static ArrayList<String> deadOrderList = new ArrayList<>();
     private static ArrayList<Message> messageQueue = new ArrayList<>();
+
+    private static BusinessEngine businessEngine;
 
     public static Portfolio portfolio = new Portfolio(
             new Stock("FIAT", 1.0, 1000),
@@ -74,11 +77,27 @@ public class Broker {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                System.out.println("This Broker is currently trading the following instruments...");
                 portfolio.print();
                 System.out.println("REQUESTING A MARKET SNAPSHOT UPDATE");
                 executorService.submit(new ClientWriter(socket, message));
                 ClientReader clientReader = new ClientReader(socket);
                 futureMap.put(executorService.submit(clientReader), clientReader);
+            }
+        }, 0, 10000);
+    }
+
+    private static void Trade(){
+        Timer timer = new Timer();
+        System.out.println("Timer Init");
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                ArrayList<Order> orders = businessEngine.SMAInstruments();
+                for (Order order : orders){
+                    if (!messageQueue.contains(order))
+                        messageQueue.add(order);
+                }
             }
         }, 0, 10000);
     }
@@ -106,12 +125,13 @@ public class Broker {
     public static void main(String args[]) throws IOException, ExecutionException, InterruptedException {
         socket = connect();
         messageQueue();
-        BusinessEngine businessEngine = new BusinessEngine(portfolio, id);
+        businessEngine = new BusinessEngine(portfolio, id);
 
         System.out.println("This com.broker.Broker has been assigned ID : " + id + " for this session");
         System.out.println(portfolio.toString());
 
         RequestMarketData();
+        Trade();
 
         while (true){
             Iterator<Map.Entry<Future<ArrayList<Message>>, ClientReader>> it = futureMap.entrySet().iterator();
@@ -119,30 +139,12 @@ public class Broker {
                 Map.Entry<Future<ArrayList<Message>>, ClientReader> pair = it.next();
                 if (pair.getKey().isDone()){
                     if (pair.getKey().get() != null){
-                        //Message is an Order Reject
-                        if (pair.getKey().get().get(0).getType() == "j"){
-                            System.out.println("ORDER REJECTED : " + pair.getKey().get().get(0));
-                        }
-                        //Message is an Order Accept
-                        else if (pair.getKey().get().get(0).getType() == "8"){
-                            System.out.println("ORDER RECEIPT : " + pair.getKey().get().get(0));
-                        }
-                        //Message is Market DataSnapShot
-                        else if (pair.getKey().get().get(0).getType() == "W"){
-                            System.out.println("MARKET DATA SNAPSHOTS RECEIVED : " + pair.getKey().get().size());
-                            for (int i = 0; i < pair.getKey().get().size(); i++){
-                                System.out.println("MARKET DATA SNAPSHOTS RECEIVED : " + pair.getKey().get().get(i).toFix());
-                                businessEngine.updateMarketMap(new MarketSnapshot(pair.getKey().get().get(i).getMessage()));
-                            }
-                            ArrayList<Order> orders = businessEngine.SMAInstruments();
-                            for (Order order : orders){
-                                if (!orderList.contains(order))
-                                    orderList.add(order);
-                            }
-                        }
-                        //Message is a Market DataSnapshot Reject
-                        else if (pair.getKey().get().get(0).getType() == "Y"){
-                            //TODO: Handle Rejects
+                        if (orderMap.get(pair.getKey().get().get(0).getId()) == null){
+                            ArrayList<Order> fragments = new ArrayList();
+                            fragments.add((Order)pair.getKey().get().get(0));
+                            orderMap.put(pair.getKey().get().get(0).getId(), fragments);
+                        } else {
+                            orderMap.get(pair.getKey().get().get(0).getId()).add((Order)pair.getKey().get().get(0));
                         }
                     }
                     deadFutureList.add(pair.getKey());
@@ -156,10 +158,43 @@ public class Broker {
             }
             if (!deadFutureList.isEmpty())
                 deadFutureList.clear();
-            for (Order order : orderList){
-                messageQueue.add(order);
+
+
+            Iterator<Map.Entry<String, ArrayList<Order>>> orderMapIterator = orderMap.entrySet().iterator();
+            while (orderMapIterator.hasNext()) {
+                Map.Entry<String, ArrayList<Order>> pair = orderMapIterator.next();
+                //IF ALL FRAGMENTS HAVE BEEN RECEIVED FOR THIS MESSAGE ID
+                if (pair.getValue().size() == pair.getValue().get(0).getFragments()) {
+                    for (int i = 0; i < pair.getValue().size(); i++){
+                        Order order = pair.getValue().get(i);
+
+                        //Message is an Order Reject
+                        if (order.getType() == "j"){
+                            System.out.println("ORDER REJECT : " + order.toFix());
+                        }
+                        //Message is an Order Accept
+                        else if (order.getType() == "8"){
+                            System.out.println("ORDER RECEIPT : " + order.toFix());
+                        }
+                        //Message is Market DataSnapShot
+                        else if (order.getType() == "W"){
+                            System.out.println("MARKET DATA SNAPSHOTS RECEIVED : " + order.toFix());
+                            businessEngine.updateMarketMap(new MarketSnapshot(order.getMessage()));
+                        }
+                        //Message is a Market DataSnapshot Reject
+                        else if (order.getType() == "Y"){
+                            //TODO: Handle Rejects
+                        }
+                    }
+                    deadOrderList.add(pair.getKey());
+                }
             }
-            orderList.clear();
+
+            for (String id : deadOrderList){
+                orderMap.remove(id);
+            }
+            if (!deadOrderList.isEmpty())
+                deadOrderList.clear();
         }
     }
 }

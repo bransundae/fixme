@@ -73,9 +73,8 @@ public class Router {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                for (Message message : messageBatch) {
+                for (Message message : messageBatch)
                     executorService.submit(new ClientWriter(clientMap.get(message.getRecipientID()), message));
-                }
                 messageBatch.clear();
             }
         }, 0, 500);

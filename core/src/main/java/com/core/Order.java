@@ -24,6 +24,8 @@ public class Order extends Message{
         this.bid = bid;
         this.quantity = quantity;
         this.buy = buy;
+        this.timeStamp = System.currentTimeMillis();
+        this.id = timeStamp +""+ senderID;
         this.message = toFix();
     }
 

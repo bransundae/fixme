@@ -41,13 +41,14 @@ public class BusinessEngine {
         ArrayList<Order> orders = new ArrayList<>();
         Iterator<Map.Entry<Integer, Portfolio>> it = marketMap.entrySet().iterator();
         while (it.hasNext()){
+            ArrayList<Order> temp = new ArrayList<>();
             Map.Entry<Integer, Portfolio> pair = it.next();
             for (Stock stock : pair.getValue().getPortfolio()){
                 if (stock.getMaxDifference() > 0.2 && !stock.getName().equalsIgnoreCase("FIAT")){
                     int hold = calcBuyAmount(stock, 10);
                     if (hold > 0) {
                         System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "BUYING " + hold + " UNITS at " + stock.getPrice() + " per UNIT");
-                        orders.add(new Order("D", id, pair.getKey(), stock.getName(), stock.getPrice(), hold, true));
+                        temp.add(new Order("D", id, pair.getKey(), stock.getName(), stock.getPrice(), hold, true));
                     } else {
                         System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "HOLD");
                     }
@@ -55,7 +56,7 @@ public class BusinessEngine {
                     int hold = calcSellAmount(stock, 50);
                     if (hold > 0) {
                         System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "SELLING " + hold + " UNITS at " + stock.getPrice() + " per UNIT");
-                        orders.add(new Order("D", id, pair.getKey(), stock.getName(), stock.getPrice(), hold, false));
+                        temp.add(new Order("D", id, pair.getKey(), stock.getName(), stock.getPrice(), hold, false));
                     } else {
                         System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "HOLD");
                     }
@@ -64,11 +65,11 @@ public class BusinessEngine {
                     System.out.printf("STOCK: %S | SMADiff: %f | ACTION: %S\n", stock.getName(), stock.getMaxDifference(), "HOLD");
                 }
             }
-        }
-
-        for (int i = 0; i < orders.size(); i++){
-            orders.get(i).setId(orders.get(i).getId());
-            orders.get(i).setFragments(orders.size());
+            for (int i = 0; i < temp.size(); i++){
+                temp.get(i).setId(temp.get(0).getId());
+                temp.get(i).setFragments(temp.size());
+                orders.add(temp.get(i));
+            }
         }
         return orders;
     }
