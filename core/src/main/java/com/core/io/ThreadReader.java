@@ -11,10 +11,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
+import java.net.*;
 import java.util.ArrayList;
 import java.util.concurrent.Callable;
 
@@ -48,6 +45,9 @@ public class ThreadReader implements Callable {
             input = in.readLine();
         } catch (SocketTimeoutException e){
             return null;
+        } catch (ConnectException e){
+            System.out.println("ERROR FATAL: Router Not Found");
+            System.exit(-1);
         } catch (IOException e){
             System.out.println("Read from Client Failed");
             return null;

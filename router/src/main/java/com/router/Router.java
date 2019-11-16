@@ -21,6 +21,7 @@ public class Router {
     private static ServerReader brokerReader;
 
     private static Map<Integer, Socket> clientMap = new HashMap<>();
+    private static ArrayList<Integer> deadClientList = new ArrayList<>();
     private static Map<Integer, MarketSnapshot> marketSnapshotMap = new HashMap<>();
     private static Map<Future<Message>, ServerReader> futureMap = new HashMap<>();
 
@@ -43,16 +44,25 @@ public class Router {
         marketReader = new ServerReader(market);
     }
 
-    private static void heartBeat() {
-
-        Iterator<Map.Entry<Integer, Socket>> it = clientMap.entrySet().iterator();
-
-        while (it.hasNext()){
-            Map.Entry<Integer, Socket> pair = it.next();
-            Message message = new Message(500, pair.getKey(), "0");
-            message.setMessage(message.toFix());
-            executorService.submit(new ThreadWriter(pair.getValue(), message));
-        }
+    private static void pruneDeadClients(){
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                for(Integer i : deadClientList){
+                    System.out.println("REMOVING DEAD CLIENT ID: " + i);
+                    clientMap.remove(i);
+                }
+                deadClientList.clear();
+                Iterator<Map.Entry<Integer, Socket>> it = clientMap.entrySet().iterator();
+                while (it.hasNext()){
+                    Map.Entry<Integer, Socket> pair = it.next();
+                    deadClientList.add(pair.getKey());
+                    Message message = new Message(500, pair.getKey(), "0");
+                    executorService.submit(new ThreadWriter(pair.getValue(), message));
+                }
+            }
+        }, 0, 10000);
     }
 
     private static void messageQueue(){
@@ -87,6 +97,7 @@ public class Router {
         futureMap.put(executorService.submit(brokerReader), brokerReader);
         futureMap.put(executorService.submit(marketReader), marketReader);
 
+        pruneDeadClients();
         messageQueue();
         messageBatch();
 
@@ -111,7 +122,6 @@ public class Router {
                                 else if (marketSnapshotMap.get(pair.getKey().get().getSenderID()) != null){
                                     marketSnapshotMap.replace(pair.getKey().get().getSenderID(), new MarketSnapshot(pair.getKey().get().getMessage()));
                                 }
-                                /*toSend.add(new Message(500, pair.getKey().get().getSenderID(), "0", true));*/
                             }
                             //Market Data Request
                             else if (pair.getKey().get().getType().equalsIgnoreCase("V")){
@@ -130,6 +140,16 @@ public class Router {
                             else if (pair.getKey().get().getType().equalsIgnoreCase("D") || pair.getKey().get().getType().equalsIgnoreCase("8")
                             || pair.getKey().get().getType().equalsIgnoreCase("j") || pair.getKey().get().getType().equalsIgnoreCase("3")){
                                 toSend.add(new Order(pair.getKey().get().getMessage()));
+                            }
+                            //Pulse
+                            else if (pair.getKey().get().getType().equalsIgnoreCase("0")){
+                                System.out.println("FLAGGING CLIENT AS SAFE: " + pair.getKey().get().getSenderID());
+                                for(int i = 0; i < deadClientList.size(); i++) {
+                                    if (deadClientList.get(i) == pair.getKey().get().getSenderID()) {
+                                        deadClientList.remove(deadClientList.get(i));
+                                        break;
+                                    }
+                                }
                             }
                         }
                         //Registration

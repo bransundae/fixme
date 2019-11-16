@@ -32,10 +32,15 @@ public class Market {
             new Stock("BSTOCK", 21.20, 50),
             new Stock("CSTOCK", 128.60, 30));
 
-    private static Socket connect() throws IOException, ExecutionException, InterruptedException {
+    private static Socket connect() throws ExecutionException, InterruptedException {
         //Create new Socket and send connection request to router on separate Thread
-        Socket socket = new Socket("localhost", 5001);
-
+        Socket socket = null;
+        try {
+            socket = new Socket("localhost", 5001);
+        } catch (IOException e) {
+            System.out.println("Router Not Found... Reattempting...");
+            return null;
+        }
         executorService.submit(new ThreadWriter(socket, new Message("35=A")));
 
         ThreadReader threadReader = new ThreadReader(socket);
@@ -111,7 +116,8 @@ public class Market {
                     try {
                         socket = new Socket("localhost", 5001);
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        System.out.println("ERROR FATAL: Router Not Found");
+                        System.exit(-1);
                     }
                     executorService.submit(new ThreadWriter(socket, messageQueue.get(0)));
                     ThreadReader threadReader = new ThreadReader(socket);
@@ -122,8 +128,11 @@ public class Market {
         }, 0, 1000);
     }
 
-    public static void main(String args[]) throws IOException, ExecutionException, InterruptedException {
-        socket = connect();
+    public static void main(String args[]) throws ExecutionException, InterruptedException {
+        while (socket == null){
+            socket = connect();
+        }
+
         MarketReopen(5);
         messageQueue();
 
@@ -145,6 +154,8 @@ public class Market {
                             } else {
                                 orderMap.get(message.getId()).add((Order) message);
                             }
+                        } else {
+                            messageQueue.add(new Message(id, 500, "0"));
                         }
                     }
                     deadFutureList.add(pair.getKey());

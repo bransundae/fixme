@@ -251,19 +251,15 @@ public class Message {
                     break;
             }
         }
-        //checksum += arr.length - 1;
         checksum %= 256;
 
         if (checksum >= 100) {
-            System.out.println("Checksum: " + checksum);
             this.checksum =  "" + checksum;
         }
         else if (checksum >= 10) {
-            System.out.println("Checksum: " + checksum);
             this.checksum = "0" + checksum;
         }
         else {
-            System.out.println("Checksum: " + checksum);
             this.checksum = "00" + checksum;
         }
         return this.checksum;
@@ -283,20 +279,16 @@ public class Message {
                         break;
                 }
             }
-            //checksum += arr.length - 1;
             checksum %= 256;
 
             String compare = "";
             if (checksum >= 100) {
-                System.out.println("Checksum: " + checksum);
                 compare =  "" + checksum;
             }
             else if (checksum >= 10) {
-                System.out.println("Checksum: " + checksum);
                 compare = "0" + checksum;
             }
             else {
-                System.out.println("Checksum: " + checksum);
                 compare = "00" + checksum;
             }
             if (compare.equalsIgnoreCase(this.checksum))

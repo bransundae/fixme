@@ -29,9 +29,15 @@ public class Broker {
             new Stock("BSTOCK", 21.20, 5),
             new Stock("CSTOCK", 128.60, 3));
 
-    private static Socket connect() throws IOException, ExecutionException, InterruptedException {
+    private static Socket connect() throws ExecutionException, InterruptedException {
         //Create new Socket and send connection request to router on separate Thread
-        Socket socket = new Socket("localhost", 5000);
+        Socket socket = null;
+        try {
+            socket = new Socket("localhost", 5000);
+        } catch (IOException e) {
+            System.out.println("ERROR REATTEMPT: Router Not Found");
+            return null;
+        }
 
         executorService.submit(new ThreadWriter(socket, new Message("35=A")));
 
@@ -49,7 +55,7 @@ public class Broker {
                                 try {
                                     id = pair.getKey().get().getRecipientID();
                                 } catch (NumberFormatException e) {
-                                    System.out.println("Router Attempted to assign an Invalid ID");
+                                    System.out.println("ERROR FATAL: Router Attempted to assign an Invalid ID");
                                     System.exit(-1);
                                 }
                             }
@@ -72,7 +78,8 @@ public class Broker {
                 try {
                     socket = new Socket("localhost", 5000);
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    System.out.println("ERROR FATAL: Router Not Found");
+                    System.exit(-1);
                 }
                 System.out.println("This Broker is currently trading the following instruments...");
                 portfolio.print();
@@ -108,7 +115,8 @@ public class Broker {
                     try {
                         socket = new Socket("localhost", 5000);
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        System.out.println("ERROR FATAL: Router Not Found");
+                        System.exit(-1);
                     }
                     executorService.submit(new ThreadWriter(socket, messageQueue.get(0)));
                     ThreadReader threadReader = new ThreadReader(socket);
@@ -119,8 +127,11 @@ public class Broker {
         }, 0, 1000);
     }
 
-    public static void main(String args[]) throws IOException, ExecutionException, InterruptedException {
-        socket = connect();
+    public static void main(String args[]) throws ExecutionException, InterruptedException {
+        while (socket == null){
+            socket = connect();
+        }
+
         messageQueue();
         businessEngine = new BusinessEngine(portfolio, id);
 

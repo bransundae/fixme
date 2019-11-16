@@ -80,26 +80,22 @@ public class ServerReader implements Callable {
                 return message;
             }
             else {
-                System.out.println("Checksum does not Validate, Faulty Receive");
+                System.out.println("Checksum Invalid: " + ((Order) message).toFix());
                 return null;
             }
-
         } else if (((Message)message).getType().equalsIgnoreCase("W")
                 || ((Message)message).getType().equalsIgnoreCase("Y")
                 || ((Message)message).getType().equalsIgnoreCase("V")){
-
                 message = new MarketSnapshot(input);
             if (((MarketSnapshot)message).validateChecksum()) {
                 System.out.println("Checksum Validates : " + ((MarketSnapshot) message).toFix());
                 return message;
             }
             else {
-                System.out.println("Checksum does not Validate, Faulty Receive");
+                System.out.println("Checksum Invalid: " + ((MarketSnapshot) message).toFix());
                 return null;
             }
-
         } else {
-
             if (((Message)message).validateChecksum()) {
                 System.out.println("Checksum Validates : " + ((Message) message).toFix());
                 //If client ID does not exist then assign client an ID and store socket in HashMap
@@ -110,7 +106,7 @@ public class ServerReader implements Callable {
                 return message;
             }
             else {
-                System.out.println("Checksum does not Validate, Faulty Receive");
+                System.out.println("Checksum Invalid: " + ((Message) message).toFix());
                 return null;
             }
 
