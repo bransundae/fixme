@@ -1,6 +1,6 @@
 ----------------------------------------------------------------
-Sun Nov 17 21:28:24 SAST 2019:
-Booting Derby version The Apache Software Foundation - Apache Derby - 10.12.1.1 - (1704137): instance a816c00e-016e-7ad6-714e-00000b2b6808 
+Sun Nov 17 22:20:10 SAST 2019:
+Booting Derby version The Apache Software Foundation - Apache Derby - 10.12.1.1 - (1704137): instance a816c00e-016e-7b05-d562-00000b2b6808 
 on database directory /home/nullfinder/JavaProjects/fixme/fixmedb with class loader jdk.internal.loader.ClassLoaders$AppClassLoader@4b85612c 
 Loaded from file:/home/nullfinder/JavaProjects/fixme/router/target/router-1.0-SNAPSHOT-jar-with-dependencies.jar
 java.vendor=Ubuntu

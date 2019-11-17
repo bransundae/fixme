@@ -72,11 +72,9 @@ public class Market {
 
     private static void randomizeStock(){
 
-        //Double fluc[] = {.1, .2, -.1, -.2, -.5, .5, .3, -.3};
+        Double fluc[] = {.1, .2, -.1, -.2, -.5, .5, .3, -.3};
 
-        Double fluc[] = {.1, .2};
-
-        int random = (int)(Math.random() * ((1 - 0) + 1)) + 0;
+        int random = (int)(Math.random() * ((7 - 0) + 1)) + 0;
 
         for (Stock stock : portfolio.getPortfolio()){
             if (!stock.getName().equalsIgnoreCase("FIAT"))
@@ -214,8 +212,9 @@ public class Market {
                                     }
                                 } else {
                                     //SELL ORDER WHERE ASK IS GREATER THAN MARKET PRICE
-                                    if (order.getBid() >= portfolio.getStock(order.getStock()).getPrice()) {
+                                    if (order.getBid() - .05 >= portfolio.getStock(order.getStock()).getPrice()) {
                                         //TODO MARKET WILL SEARCH FOR BUYERS WILLING TO ACCEPT BID
+                                        System.out.println("UNACCEPTABLE BID : " + order.toFix());
                                     }
                                     //SELL ORDER WHERE ASK IS LESS THAN OR EQUAL MARKET PRICE
                                     else {
@@ -224,9 +223,11 @@ public class Market {
                                             portfolio.getStock("FIAT").modHold(-(int)(order.getQuantity() * order.getBid()));
                                             order.setFragments(1);
                                             order.returnToSender("8");
+                                            System.out.println("NEW SELL ORDER RECEIPT : " + order.toFix());
                                         } else {
                                             order.setFragments(1);
                                             order.returnToSender("j");
+                                            System.out.println("NEW SELL ORDER REJECT : " + order.toFix());
                                         }
                                         messageQueue.add(order);
                                     }

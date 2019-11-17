@@ -73,7 +73,7 @@ public class ServerReader implements Callable {
 
         if (((Message)message).getType().equalsIgnoreCase("D")
                 || ((Message)message).getType().equalsIgnoreCase("j")
-                || ((Message)message).getType().equalsIgnoreCase("j")){
+                || ((Message)message).getType().equalsIgnoreCase("8")){
             message = new Order(input);
             if (((Order)message).validateChecksum()) {
                 System.out.println("Checksum Validates : " + ((Order) message).toFix());
