@@ -3,6 +3,7 @@ package com.router;
 import com.core.MarketSnapshot;
 import com.core.Message;
 import com.core.Order;
+import com.core.database.Database;
 import com.core.io.ThreadWriter;
 
 import java.io.*;
@@ -14,6 +15,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 public class Router {
+    private static Database database;
+
     private static ServerSocket broker;
     private static ServerSocket market;
 
@@ -30,6 +33,7 @@ public class Router {
     private static ArrayList<Message> messageBatch = new ArrayList<>();
 
     private static ExecutorService executorService = Executors.newCachedThreadPool();
+    private static ExecutorService databaseService = Executors.newFixedThreadPool(1);
 
     public static int clientID = 100000;
 
@@ -72,6 +76,14 @@ public class Router {
             public void run() {
                 if (messageQueue.size() > 0) {
                     executorService.submit(new ThreadWriter(clientMap.get(messageQueue.get(0).getRecipientID()), messageQueue.get(0)));
+                    try {
+                        database = new Database();
+                        database.setMessage(messageQueue.get(0));
+                        database.setAction("INSERT");
+                        databaseService.submit(database);
+                    } catch (ClassNotFoundException e) {
+                        e.printStackTrace();
+                    }
                     messageQueue.remove(0);
                 }
             }
@@ -83,14 +95,29 @@ public class Router {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                for (Message message : messageBatch)
+                for (Message message : messageBatch) {
                     executorService.submit(new ThreadWriter(clientMap.get(message.getRecipientID()), message));
+                    try {
+                        database = new Database();
+                        database.setMessage(message);
+                        database.setAction("INSERT");
+                        databaseService.submit(database);
+                    } catch (ClassNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                }
                 messageBatch.clear();
             }
         }, 0, 500);
     }
 
     public static void main(String args[]) throws Exception {
+        try {
+            database = new Database();
+            databaseService.submit(database);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
 
         listenSocket();
 

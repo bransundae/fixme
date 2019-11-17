@@ -60,7 +60,7 @@ public class ThreadReader implements Callable {
         Object message = new Message(input);
 
         if (((Message)message).getType().equalsIgnoreCase("D")
-                || ((Message)message).getType().equalsIgnoreCase("j")
+                || ((Message)message).getType().equalsIgnoreCase("8")
                 || ((Message)message).getType().equalsIgnoreCase("j")){
             message = new Order(input);
             if (((Order)message).validateChecksum()) {

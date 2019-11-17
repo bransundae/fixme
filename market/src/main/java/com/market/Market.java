@@ -1,5 +1,6 @@
 package com.market;
 
+import com.core.database.Database;
 import com.core.io.ThreadReader;
 import com.core.io.ThreadWriter;
 import com.core.*;
@@ -10,14 +11,13 @@ import java.net.Socket;
 import java.util.*;
 import java.util.concurrent.*;
 
-import static com.core.MathUtil.round;
+import static com.core.util.MathUtil.round;
 
 public class Market {
 
     private static int id = -1;
     private static Socket socket;
     private static int SMAPeriod = 1;
-
     private static ConcurrentHashMap<Future<Message>, ThreadReader> futureMap = new ConcurrentHashMap<>();
     private static ArrayList<Message> messageQueue = new ArrayList<>();
     private static ArrayList<Future<Message>> deadFutureList = new ArrayList<>();
