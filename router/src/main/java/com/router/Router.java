@@ -66,49 +66,38 @@ public class Router {
                     executorService.submit(new ThreadWriter(pair.getValue(), message));
                 }
             }
-        }, 0, 10000);
+        }, 0, 60000);
     }
 
     private static void messageQueue(){
-        Timer timer = new Timer();
-        timer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                if (messageQueue.size() > 0) {
-                    executorService.submit(new ThreadWriter(clientMap.get(messageQueue.get(0).getRecipientID()), messageQueue.get(0)));
-                    try {
-                        database = new Database();
-                        database.setMessage(messageQueue.get(0));
-                        database.setAction("INSERT");
-                        databaseService.submit(database);
-                    } catch (ClassNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                    messageQueue.remove(0);
-                }
+        if (messageQueue.size() > 0) {
+            executorService.submit(new ThreadWriter(clientMap.get(messageQueue.get(0).getRecipientID()), messageQueue.get(0)));
+            try {
+                database = new Database();
+                database.setMessage(messageQueue.get(0));
+                database.setAction("INSERT");
+                databaseService.submit(database);
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
             }
-        }, 0, 500);
+            messageQueue.remove(0);
+        }
     }
 
     private static void messageBatch(){
-        Timer timer = new Timer();
-        timer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                for (Message message : messageBatch) {
-                    executorService.submit(new ThreadWriter(clientMap.get(message.getRecipientID()), message));
-                    try {
-                        database = new Database();
-                        database.setMessage(message);
-                        database.setAction("INSERT");
-                        databaseService.submit(database);
-                    } catch (ClassNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                }
-                messageBatch.clear();
+        for (Message message : messageBatch) {
+            System.out.println("MESSAGE BATCH: " + message.toFix());
+            executorService.submit(new ThreadWriter(clientMap.get(message.getRecipientID()), message));
+            try {
+                database = new Database();
+                database.setMessage(message);
+                database.setAction("INSERT");
+                databaseService.submit(database);
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
             }
-        }, 0, 500);
+        }
+        messageBatch.clear();
     }
 
     public static void main(String args[]) throws Exception {
@@ -125,8 +114,6 @@ public class Router {
         futureMap.put(executorService.submit(marketReader), marketReader);
 
         pruneDeadClients();
-        messageQueue();
-        messageBatch();
 
         while (true){
             //Iterate through the futureMap and if a Callable has returned a completed Future then add the message to the job queue and remove the future - ServerReader pair
@@ -156,10 +143,11 @@ public class Router {
                                 while (iterator.hasNext()) {
                                     Map.Entry<Integer, MarketSnapshot> itPair = iterator.next();
                                     MarketSnapshot marketSnapshot = new MarketSnapshot(itPair.getKey(), pair.getKey().get().getSenderID(), "W", itPair.getValue().getStockSnapshots());
-                                    toSend.add((Message) marketSnapshot);
+                                    toSend.add(marketSnapshot);
                                 }
+                                String id = System.currentTimeMillis() + "" + 500;
                                 for (int i = 0; i < toSend.size(); i++){
-                                    toSend.get(i).setId(System.currentTimeMillis() + "" + 500);
+                                    toSend.get(i).setId(id);
                                     toSend.get(i).setFragments(marketSnapshotMap.size());
                                 }
                             }
@@ -190,12 +178,9 @@ public class Router {
                                 executorService.submit(new ThreadWriter(pair.getValue().getClient(), new Message(500, -1, "A")));
                             }
                         }
-                        for(Message message : toSend) {
-                            if (message.getFragments() > 1)
-                                messageBatch.add(message);
-                            else
-                                messageQueue.add(message);
-                        }
+                        for(Message message : toSend)
+                            messageQueue.add(message);
+                        messageQueue();
                     }
                     deadFutureList.add(pair.getKey());
                 }

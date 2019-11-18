@@ -1,13 +1,13 @@
 ----------------------------------------------------------------
-Sun Nov 17 22:20:10 SAST 2019:
-Booting Derby version The Apache Software Foundation - Apache Derby - 10.12.1.1 - (1704137): instance a816c00e-016e-7b05-d562-00000b2b6808 
-on database directory /home/nullfinder/JavaProjects/fixme/fixmedb with class loader jdk.internal.loader.ClassLoaders$AppClassLoader@4b85612c 
-Loaded from file:/home/nullfinder/JavaProjects/fixme/router/target/router-1.0-SNAPSHOT-jar-with-dependencies.jar
-java.vendor=Ubuntu
-java.runtime.version=11.0.4+11-post-Ubuntu-1ubuntu218.04.3
-user.dir=/home/nullfinder/JavaProjects/fixme
-os.name=Linux
-os.arch=amd64
-os.version=5.0.0-36-generic
+Mon Nov 18 12:59:26 SAST 2019:
+Booting Derby version The Apache Software Foundation - Apache Derby - 10.12.1.1 - (1704137): instance a816c00e-016e-7e2a-d511-000007aaf450 
+on database directory /homes/bjohnso/Desktop/fixme/fixmedb with class loader jdk.internal.loader.ClassLoaders$AppClassLoader@55054057 
+Loaded from file:/homes/bjohnso/Desktop/fixme/router/target/router-1.0-SNAPSHOT-jar-with-dependencies.jar
+java.vendor=Oracle Corporation
+java.runtime.version=13+33
+user.dir=/homes/bjohnso/Desktop/fixme
+os.name=Mac OS X
+os.arch=x86_64
+os.version=10.14.6
 derby.system.home=null
 Database Class Loader started - derby.database.classpath=''

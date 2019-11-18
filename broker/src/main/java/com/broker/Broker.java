@@ -61,6 +61,10 @@ public class Broker {
                                 }
                             }
                         }
+                        else {
+                            deadFutureList.add(pair.getKey());
+                            return null;
+                        }
                     }
                     deadFutureList.add(pair.getKey());
                 }
@@ -89,7 +93,7 @@ public class Broker {
                 ThreadReader threadReader = new ThreadReader(socket);
                 futureMap.put(executorService.submit(threadReader), threadReader);
             }
-        }, 0, 10000);
+        }, 0, 20000);
     }
 
     private static void Trade(){
@@ -130,6 +134,7 @@ public class Broker {
 
     public static void main(String args[]) throws ExecutionException, InterruptedException {
         while (socket == null){
+            System.out.println("CONNECTING");
             socket = connect();
         }
 
@@ -140,7 +145,6 @@ public class Broker {
         System.out.println(portfolio.toString());
 
         RequestMarketData();
-        Trade();
 
         while (true){
             Iterator<Map.Entry<Future<Message>, ThreadReader>> it = futureMap.entrySet().iterator();
@@ -206,6 +210,13 @@ public class Broker {
                             MarketSnapshot marketSnapshot = (MarketSnapshot)message;
                             System.out.println("MARKET DATA SNAPSHOTS RECEIVED : " + marketSnapshot.toFix());
                             businessEngine.updateMarketMap(marketSnapshot);
+                            if (i + 1 == pair.getValue().size()){
+                                ArrayList<Order> orders = businessEngine.SMAInstruments();
+                                for (Order order : orders){
+                                    if (!messageQueue.contains(order))
+                                        messageQueue.add(order);
+                                }
+                            }
                         }
                         //Message is a Market DataSnapshot Reject
                         else if (message.getType() == "Y"){

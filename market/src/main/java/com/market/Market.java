@@ -62,6 +62,10 @@ public class Market {
                                 }
                             }
                         }
+                        else {
+                            deadFutureList.add(pair.getKey());
+                            return null;
+                        }
                     }
                     deadFutureList.add(pair.getKey());
                 }
@@ -72,9 +76,9 @@ public class Market {
 
     private static void randomizeStock(){
 
-        Double fluc[] = {.1, .2, -.1, -.2, -.5, .5, .3, -.3};
+        Double fluc[] = {.1, .2, .1, .2, .3, -.1, -.2, -.5, .5, .3, -.3, .1, .2};
 
-        int random = (int)(Math.random() * ((7 - 0) + 1)) + 0;
+        int random = (int)(Math.random() * ((12 - 0) + 1)) + 0;
 
         for (Stock stock : portfolio.getPortfolio()){
             if (!stock.getName().equalsIgnoreCase("FIAT"))
@@ -191,7 +195,9 @@ public class Market {
                                     //BUY ORDER WHERE BID IS LESS THAN  MARKET PRICE
                                     if (order.getBid() <= portfolio.getStock(order.getStock()).getPrice() - .05) {
                                         //TODO MARKET WILL SEARCH FOR BROKERS THAT WILL ACCEPT THE BID
-                                        System.out.println("UNACCEPTABLE BID : " + order.toFix());
+                                        order.setFragments(1);
+                                        order.returnToSender("j");
+                                        System.out.println("NEW BUY ORDER REJECT : " + order.toFix());
                                     }
                                     //BUY ORDER WHERE BID IS GREATER THAN OR EQUAL TO MARKET PRICE
                                     else {
@@ -208,13 +214,15 @@ public class Market {
                                             order.returnToSender("j");
                                             System.out.println("NEW BUY ORDER REJECT : " + order.toFix());
                                         }
-                                        messageQueue.add(order);
                                     }
+                                    messageQueue.add(order);
                                 } else {
                                     //SELL ORDER WHERE ASK IS GREATER THAN MARKET PRICE
                                     if (order.getBid() - .05 >= portfolio.getStock(order.getStock()).getPrice()) {
                                         //TODO MARKET WILL SEARCH FOR BUYERS WILLING TO ACCEPT BID
-                                        System.out.println("UNACCEPTABLE BID : " + order.toFix());
+                                        order.setFragments(1);
+                                        order.returnToSender("j");
+                                        System.out.println("NEW SELL ORDER REJECT : " + order.toFix());
                                     }
                                     //SELL ORDER WHERE ASK IS LESS THAN OR EQUAL MARKET PRICE
                                     else {
@@ -229,8 +237,8 @@ public class Market {
                                             order.returnToSender("j");
                                             System.out.println("NEW SELL ORDER REJECT : " + order.toFix());
                                         }
-                                        messageQueue.add(order);
                                     }
+                                    messageQueue.add(order);
                                 }
                             }
                         }
